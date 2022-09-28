@@ -48,7 +48,7 @@ namespace Authsignal
       {
         Email = request.Email,
         IdempotencyKey = request.IdempotencyKey,
-        RedirectUrl = request.RedirectUrl,
+        RedirectUrl = request.RedirectUrl ?? this._redirectUrl,
         IpAddress = request.IpAddress,
         UserAgent = request.UserAgent,
         DeviceId = request.DeviceId,
