@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Authsignal</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Authsignal.Server.Client</PackageId>
+    <Authors>Authsignal</Authors>
+    <Company>Authsignal</Company>
+    <Description>The Authsignal client for dotnet</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Authsignal, MFA, 2FA, Authentication</PackageTags>
+    <RepositoryUrl>https://github.com/authsignal/authsignal-dotnet</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>
