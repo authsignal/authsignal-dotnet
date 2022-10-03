@@ -51,6 +51,16 @@ namespace Authsignal
     UserActionState State
   );
 
+  public record class ValidateChallengeRequest(
+    string UserId,
+    string Token
+  );
+
+  public record class ValidateChallengeResponse(
+    bool Success,
+    UserActionState? State
+  );
+
   public record class AuthenticatorRequest(
     string UserId,
     string OobChannel,
@@ -115,4 +125,9 @@ namespace Authsignal
     SMS,
     EMAIL_MAGIC_LINK
   }
+
+  public record class JwtOtherData(
+    string IdempotencyKey,
+    string ActionCode
+  );
 }
