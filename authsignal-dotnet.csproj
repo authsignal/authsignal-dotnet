@@ -12,6 +12,11 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Authsignal, MFA, 2FA, Authentication</PackageTags>
     <RepositoryUrl>https://github.com/authsignal/authsignal-dotnet</RepositoryUrl>
+    <Version>1.0.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.23.1" />
+  </ItemGroup>
 
 </Project>
