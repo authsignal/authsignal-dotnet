@@ -160,7 +160,7 @@ namespace Authsignal
         IssuerSigningKey = securityKey,
         ValidateIssuer = false,
         ValidateAudience = false,
-        ValidateLifetime = false,
+        ValidateLifetime = true,
       }, out SecurityToken validatedToken);
 
       var jwtToken = (JwtSecurityToken)validatedToken;
