@@ -19,12 +19,12 @@ public class AuthsignalClient : IAuthsignalClient
     private readonly JsonSerializerOptions _serializeOptions;
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null,
-        string baseAddress = DEFAULT_BASE_ADDRESS)
+        string? baseAddress = null)
     {
         _secret = secret;
         _redirectUrl = redirectUrl;
         _httpClient = httpClientFactory.CreateClient(nameof(AuthsignalClient));
-        _httpClient.BaseAddress = new Uri(baseAddress);
+        _httpClient.BaseAddress = new Uri(baseAddress ?? DEFAULT_BASE_ADDRESS);
 
         _serializeOptions = new JsonSerializerOptions
         {
