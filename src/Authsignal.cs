@@ -11,11 +11,10 @@ namespace Authsignal;
 public class AuthsignalClient : IAuthsignalClient
 {
     internal const string DEFAULT_BASE_ADDRESS = "https://signal.authsignal.com/v1/";
+
     private readonly HttpClient _httpClient;
     private readonly string? _redirectUrl;
-
     private readonly string _secret;
-
     private readonly JsonSerializerOptions _serializeOptions;
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null,
@@ -42,7 +41,7 @@ public class AuthsignalClient : IAuthsignalClient
         {
             BaseAddress = new Uri(baseAddress)
         };
-        
+
         _serializeOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -84,7 +83,7 @@ public class AuthsignalClient : IAuthsignalClient
         using (var response = await _httpClient.SendAsync(
                    new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/actions/{request.Action}")
                    {
-                       Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions))
+                       Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
                    }, cancellationToken).ConfigureAwait(false))
         {
             if (response.StatusCode == HttpStatusCode.OK)
@@ -154,7 +153,7 @@ public class AuthsignalClient : IAuthsignalClient
         using var response = await _httpClient.SendAsync(
             new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/authenticators")
             {
-                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions))
+                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
             }, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.OK)
@@ -176,7 +175,7 @@ public class AuthsignalClient : IAuthsignalClient
         using var response = await _httpClient.SendAsync(
             new HttpRequestMessage(HttpMethod.Post, $"users/email/{request.Email}/challenge")
             {
-                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions))
+                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
             }, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.OK)
