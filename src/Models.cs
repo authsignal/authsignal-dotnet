@@ -63,13 +63,13 @@ public record class ValidateChallengeResponse(
 
 public record class AuthenticatorRequest(
     string UserId,
-    string OobChannel,
+    OobChannel OobChannel,
     string? PhoneNumber = null,
     string? Email = null
 );
 
 public record class AuthenticatorRequestBody(
-    string OobChannel,
+    OobChannel OobChannel,
     string? PhoneNumber = null,
     string? Email = null
 );
