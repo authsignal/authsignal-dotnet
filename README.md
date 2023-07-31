@@ -10,4 +10,4 @@ dotnet add package Authsignal.Server.Client
 
 ## Documentation
 
-Check out our [API documentation](https://authsignal-docs.vercel.app/quickstarts/dotnet) to see how to get up and running quickly.
+Check out our [API documentation](https://docs.authsignal.com/sdks/server/csharp) to see how to get up and running quickly.

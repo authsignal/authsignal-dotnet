@@ -27,14 +27,6 @@ public class ClientTests : TestBase
     }
 
     [Fact]
-    public async Task LoginWithEmail()
-    {
-        var response = await AuthsignalClient.LoginWithEmail(new(Email: "test@authsignal.co.nz"));
-
-        Assert.NotNull(response);
-    }
-
-    [Fact]
     public async Task ValidateChallenge()
     {
         var response = await AuthsignalClient.ValidateChallenge(new(UserId: "TestUserId", Token: Configuration["Token"]));

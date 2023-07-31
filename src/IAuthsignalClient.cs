@@ -12,6 +12,4 @@ public interface IAuthsignalClient
 
     Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request,
         CancellationToken cancellationToken = default);
-
-    Task<EmailResponse> LoginWithEmail(EmailRequest request, CancellationToken cancellationToken = default);
 }

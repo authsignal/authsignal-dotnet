@@ -78,6 +78,7 @@ public class AuthsignalClient : IAuthsignalClient
             request.IpAddress,
             request.UserAgent,
             request.DeviceId,
+            request.Custom,
             RedirectToSettings: request.RedirectToSettings);
 
         using (var response = await _httpClient.SendAsync(
@@ -160,28 +161,6 @@ public class AuthsignalClient : IAuthsignalClient
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonSerializer.Deserialize<AuthenticatorResponse>(content, _serializeOptions)!;
-        }
-
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        throw new AuthsignalException((int)response.StatusCode, responseData);
-    }
-
-    public async Task<EmailResponse> LoginWithEmail(EmailRequest request, CancellationToken cancellationToken = default)
-    {
-        var body = new EmailRequestBody(request.RedirectUrl);
-
-        using var response = await _httpClient.SendAsync(
-            new HttpRequestMessage(HttpMethod.Post, $"users/email/{request.Email}/challenge")
-            {
-                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
-            }, cancellationToken).ConfigureAwait(false);
-
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<EmailResponse>(content, _serializeOptions)!;
         }
 
         var responseData = response.Content == null
