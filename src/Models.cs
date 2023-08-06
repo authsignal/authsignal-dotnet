@@ -38,6 +38,7 @@ public record class TrackResponse(
     UserActionState State,
     string IdempotencyKey,
     string Url,
+    string Token,
     bool IsEnrolled
 );
 
@@ -105,25 +106,25 @@ public record class EmailResponse(
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UserActionState
 {
-    ALLOW,
-    BLOCK,
-    CHALLENGE_REQUIRED,
-    CHALLENGE_SUCCEEDED,
-    CHALLENGE_FAILED
+  ALLOW,
+  BLOCK,
+  CHALLENGE_REQUIRED,
+  CHALLENGE_SUCCEEDED,
+  CHALLENGE_FAILED
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AuthenticatorType
 {
-    OOB,
-    OTP
+  OOB,
+  OTP
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OobChannel
 {
-    SMS,
-    EMAIL_MAGIC_LINK
+  SMS,
+  EMAIL_MAGIC_LINK
 }
 
 public record class JwtOtherData(
