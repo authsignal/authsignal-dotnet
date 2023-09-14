@@ -134,7 +134,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         if (userId == null || idempotencyKey == null || actionCode == null) throw new Exception("Invalid token");
 
-        if (request.UserId != userId) throw new Exception("Invalid user");
+        if (request.UserId != null && request.UserId != userId) throw new Exception("Invalid user");
 
         var action = await GetAction(new ActionRequest(userId, actionCode, idempotencyKey), cancellationToken).ConfigureAwait(false);
 

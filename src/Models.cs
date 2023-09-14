@@ -53,7 +53,7 @@ public record class ActionResponse(
 );
 
 public record class ValidateChallengeRequest(
-    string UserId,
+    string? UserId,
     string Token
 );
 
@@ -106,25 +106,25 @@ public record class EmailResponse(
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UserActionState
 {
-  ALLOW,
-  BLOCK,
-  CHALLENGE_REQUIRED,
-  CHALLENGE_SUCCEEDED,
-  CHALLENGE_FAILED
+    ALLOW,
+    BLOCK,
+    CHALLENGE_REQUIRED,
+    CHALLENGE_SUCCEEDED,
+    CHALLENGE_FAILED
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AuthenticatorType
 {
-  OOB,
-  OTP
+    OOB,
+    OTP
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OobChannel
 {
-  SMS,
-  EMAIL_MAGIC_LINK
+    SMS,
+    EMAIL_MAGIC_LINK
 }
 
 public record class JwtOtherData(

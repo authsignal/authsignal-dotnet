@@ -13,7 +13,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>Authsignal, MFA, 2FA, Authentication</PackageTags>
 		<RepositoryUrl>https://github.com/authsignal/authsignal-dotnet</RepositoryUrl>
-		<Version>1.5.0</Version>
+		<Version>1.6.0</Version>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<DebugSymbols>true</DebugSymbols>
