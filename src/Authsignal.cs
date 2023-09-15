@@ -140,7 +140,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         var success = action?.State == UserActionState.CHALLENGE_SUCCEEDED;
 
-        return new ValidateChallengeResponse(success, action?.State);
+        return new ValidateChallengeResponse(success, action?.State, userId);
     }
 
     public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request,

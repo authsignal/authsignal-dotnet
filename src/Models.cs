@@ -59,7 +59,8 @@ public record class ValidateChallengeRequest(
 
 public record class ValidateChallengeResponse(
     bool Success,
-    UserActionState? State
+    UserActionState? State,
+    string? UserId
 );
 
 public record class AuthenticatorRequest(
