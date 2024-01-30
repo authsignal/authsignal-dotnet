@@ -10,18 +10,23 @@ namespace Authsignal;
 
 public class AuthsignalClient : IAuthsignalClient
 {
-    internal const string DEFAULT_BASE_ADDRESS = "https://signal.authsignal.com/v1/";
+    internal const string DEFAULT_BASE_ADDRESS = "https://api.authsignal.com/v1/";
 
     private readonly HttpClient _httpClient;
     private readonly string? _redirectUrl;
     private readonly string _secret;
     private readonly JsonSerializerOptions _serializeOptions;
 
-    internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null,
-        string? baseAddress = null)
+    internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null, string? baseAddress = null)
     {
         _secret = secret;
         _redirectUrl = redirectUrl;
+
+        if (baseAddress != null && !baseAddress.EndsWith("/"))
+        {
+            baseAddress += "/";
+        }
+
         _httpClient = httpClientFactory.CreateClient(nameof(AuthsignalClient));
         _httpClient.BaseAddress = new Uri(baseAddress ?? DEFAULT_BASE_ADDRESS);
 
@@ -30,6 +35,7 @@ public class AuthsignalClient : IAuthsignalClient
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
+
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{secret}:")}");
     }
 
@@ -37,6 +43,12 @@ public class AuthsignalClient : IAuthsignalClient
     {
         _secret = secret;
         _redirectUrl = redirectUrl;
+
+        if (!baseAddress.EndsWith("/"))
+        {
+            baseAddress += "/";
+        }
+
         _httpClient = new HttpClient
         {
             BaseAddress = new Uri(baseAddress)
@@ -47,6 +59,7 @@ public class AuthsignalClient : IAuthsignalClient
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
+
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{secret}:")}");
     }
 
@@ -72,13 +85,16 @@ public class AuthsignalClient : IAuthsignalClient
     public async Task<TrackResponse> Track(TrackRequest request, CancellationToken cancellationToken = default)
     {
         var body = new TrackRequestBody(
-            request.Email,
-            request.IdempotencyKey,
-            request.RedirectUrl ?? _redirectUrl,
-            request.IpAddress,
-            request.UserAgent,
-            request.DeviceId,
-            request.Custom,
+            Email: request.Email,
+            PhoneNumber: request.PhoneNumber,
+            Username: request.Username,
+            IdempotencyKey: request.IdempotencyKey,
+            RedirectUrl: request.RedirectUrl ?? _redirectUrl,
+            IpAddress: request.IpAddress,
+            UserAgent: request.UserAgent,
+            DeviceId: request.DeviceId,
+            Scope: request.Scope,
+            Custom: request.Custom,
             RedirectToSettings: request.RedirectToSettings);
 
         using (var response = await _httpClient.SendAsync(
@@ -131,6 +147,7 @@ public class AuthsignalClient : IAuthsignalClient
         var other = JsonSerializer.Deserialize<JwtOtherData>(json, _serializeOptions);
         var idempotencyKey = other?.IdempotencyKey;
         var actionCode = other?.ActionCode;
+        var username = other?.Username;
 
         if (userId == null || idempotencyKey == null || actionCode == null) throw new Exception("Invalid token");
 
@@ -140,7 +157,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         var success = action?.State == UserActionState.CHALLENGE_SUCCEEDED;
 
-        return new ValidateChallengeResponse(success, action?.State, userId);
+        return new ValidateChallengeResponse(success, action?.State, userId, username);
     }
 
     public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request,
@@ -194,4 +211,5 @@ public class AuthsignalClient : IAuthsignalClient
 
         return jwtToken;
     }
+
 }
