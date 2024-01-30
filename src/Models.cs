@@ -14,22 +14,28 @@ public record class TrackRequest(
     string UserId,
     string Action,
     string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
     string? IdempotencyKey = null,
     string? RedirectUrl = null,
     string? IpAddress = null,
     string? UserAgent = null,
     string? DeviceId = null,
+    string? Scope = null,
     dynamic? Custom = null,
     bool? RedirectToSettings = false
 );
 
 public record class TrackRequestBody(
     string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
     string? IdempotencyKey = null,
     string? RedirectUrl = null,
     string? IpAddress = null,
     string? UserAgent = null,
     string? DeviceId = null,
+    string? Scope = null,
     dynamic? Custom = null,
     bool? RedirectToSettings = false
 );
@@ -60,7 +66,8 @@ public record class ValidateChallengeRequest(
 public record class ValidateChallengeResponse(
     bool Success,
     UserActionState? State,
-    string? UserId
+    string? UserId,
+    string? Username
 );
 
 public record class AuthenticatorRequest(
@@ -125,10 +132,12 @@ public enum AuthenticatorType
 public enum OobChannel
 {
     SMS,
-    EMAIL_MAGIC_LINK
+    EMAIL_MAGIC_LINK,
+    EMAIL_OTP
 }
 
 public record class JwtOtherData(
     string IdempotencyKey,
-    string ActionCode
+    string ActionCode,
+    string Username
 );
