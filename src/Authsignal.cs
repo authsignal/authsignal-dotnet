@@ -11,24 +11,43 @@ namespace Authsignal;
 public class AuthsignalClient : IAuthsignalClient
 {
     internal const string DEFAULT_BASE_ADDRESS = "https://api.authsignal.com/v1/";
+    internal const int DEFAULT_JWKS_CACHE_EXPIRY = 10;
+
+    private readonly string _tenantId;
+    private readonly string _secret;
+    private readonly string _baseAddress;
+    private readonly string? _redirectUrl;
 
     private readonly HttpClient _httpClient;
-    private readonly string? _redirectUrl;
-    private readonly string _secret;
     private readonly JsonSerializerOptions _serializeOptions;
 
-    internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null, string? baseAddress = null)
+    private JsonWebKeySet? _jwks;
+    private DateTime _lastJwksRequest;
+    private readonly int _jwksCacheExpiry;
+
+    internal AuthsignalClient(
+      IHttpClientFactory httpClientFactory,
+      string tenantId,
+      string secret,
+      string baseAddress = DEFAULT_BASE_ADDRESS,
+      string? redirectUrl = null,
+      int jwksCacheExpiry = DEFAULT_JWKS_CACHE_EXPIRY
+      )
     {
+        _tenantId = tenantId;
         _secret = secret;
         _redirectUrl = redirectUrl;
+        _jwksCacheExpiry = jwksCacheExpiry;
 
-        if (baseAddress != null && !baseAddress.EndsWith("/"))
+        if (!baseAddress.EndsWith("/"))
         {
             baseAddress += "/";
         }
 
+        _baseAddress = baseAddress;
+
         _httpClient = httpClientFactory.CreateClient(nameof(AuthsignalClient));
-        _httpClient.BaseAddress = new Uri(baseAddress ?? DEFAULT_BASE_ADDRESS);
+        _httpClient.BaseAddress = new Uri(_baseAddress);
 
         _serializeOptions = new JsonSerializerOptions
         {
@@ -39,15 +58,24 @@ public class AuthsignalClient : IAuthsignalClient
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{secret}:")}");
     }
 
-    public AuthsignalClient(string secret, string? redirectUrl = null, string baseAddress = DEFAULT_BASE_ADDRESS)
+    public AuthsignalClient(
+      string tenantId,
+      string secret,
+      string baseAddress = DEFAULT_BASE_ADDRESS,
+      string? redirectUrl = null,
+      int jwksCacheExpiry = DEFAULT_JWKS_CACHE_EXPIRY)
     {
+        _tenantId = tenantId;
         _secret = secret;
         _redirectUrl = redirectUrl;
+        _jwksCacheExpiry = jwksCacheExpiry;
 
         if (!baseAddress.EndsWith("/"))
         {
             baseAddress += "/";
         }
+
+        _baseAddress = baseAddress;
 
         _httpClient = new HttpClient
         {
@@ -65,21 +93,21 @@ public class AuthsignalClient : IAuthsignalClient
 
     public async Task<UserResponse> GetUser(UserRequest request, CancellationToken cancellationToken = default)
     {
-        using (var response = await _httpClient
+        using var response = await _httpClient
                    .SendAsync(new HttpRequestMessage(HttpMethod.Get, $"users/{request.UserId}"),
-                       HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
-        {
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonSerializer.Deserialize<UserResponse>(content, _serializeOptions)!;
-            }
+                       HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
-            var responseData = response.Content == null
-                ? null
-                : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            throw new AuthsignalException((int)response.StatusCode, responseData);
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<UserResponse>(content, _serializeOptions)!;
         }
+
+        var responseData = response.Content == null
+            ? null
+            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        throw new AuthsignalException((int)response.StatusCode, responseData);
     }
 
     public async Task<TrackResponse> Track(TrackRequest request, CancellationToken cancellationToken = default)
@@ -112,6 +140,7 @@ public class AuthsignalClient : IAuthsignalClient
             var responseData = response.Content == null
                 ? null
                 : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             throw new AuthsignalException((int)response.StatusCode, responseData);
         }
     }
@@ -134,13 +163,14 @@ public class AuthsignalClient : IAuthsignalClient
                 var responseData = response.Content == null
                     ? null
                     : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                 throw new AuthsignalException((int)response.StatusCode, responseData);
         }
     }
 
     public async Task<ValidateChallengeResponse> ValidateChallenge(ValidateChallengeRequest request, CancellationToken cancellationToken = default)
     {
-        var jwtToken = ValidateToken(request.Token, _secret);
+        var jwtToken = await ValidateToken(request.Token, _secret);
 
         var userId = jwtToken.Subject;
         var json = jwtToken.Claims.First(x => x.Type == "other").Value;
@@ -152,7 +182,6 @@ public class AuthsignalClient : IAuthsignalClient
         if (userId == null || idempotencyKey == null || actionCode == null) throw new Exception("Invalid token");
 
         if (request.UserId != null && request.UserId != userId) throw new Exception("Invalid user");
-
         var action = await GetAction(new ActionRequest(userId, actionCode, idempotencyKey), cancellationToken).ConfigureAwait(false);
 
         var success = action?.State == UserActionState.CHALLENGE_SUCCEEDED;
@@ -177,39 +206,68 @@ public class AuthsignalClient : IAuthsignalClient
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             return JsonSerializer.Deserialize<AuthenticatorResponse>(content, _serializeOptions)!;
         }
 
         var responseData = response.Content == null
             ? null
             : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
         throw new AuthsignalException((int)response.StatusCode, responseData);
     }
 
     private static string Base64Encode(string textToEncode)
     {
         var textAsBytes = Encoding.UTF8.GetBytes(textToEncode);
+
         return Convert.ToBase64String(textAsBytes);
     }
 
-    private static JwtSecurityToken ValidateToken(string token, string secret)
+    private async Task<JwtSecurityToken> ValidateToken(string token, string secret)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        var hmac = new HMACSHA256(Encoding.ASCII.GetBytes(secret));
-        var securityKey = new SymmetricSecurityKey(hmac.Key);
-
-        tokenHandler.ValidateToken(token, new TokenValidationParameters
+        var validationParameters = new TokenValidationParameters
         {
-            IssuerSigningKey = securityKey,
             ValidateIssuer = false,
             ValidateAudience = false,
-            ValidateLifetime = true
-        }, out var validatedToken);
+            ValidateLifetime = true,
+        };
+
+        var tokenHeader = tokenHandler.ReadJwtToken(token).Header;
+
+        if (tokenHeader.Alg == "RS256")
+        {
+            if (_jwks == null || _lastJwksRequest.AddMinutes(_jwksCacheExpiry) < DateTime.Now)
+            {
+                var jwksUriPath = $"client/public/{_tenantId}/.well-known/jwks";
+                var request = new HttpRequestMessage(HttpMethod.Get, jwksUriPath);
+
+                using var response = await _httpClient
+                       .SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
+                       .ConfigureAwait(false);
+
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                _jwks = new JsonWebKeySet(responseString);
+                _lastJwksRequest = DateTime.Now;
+            }
+
+            validationParameters.IssuerSigningKeys = _jwks.Keys;
+        }
+        else
+        {
+            var hmac = new HMACSHA256(Encoding.ASCII.GetBytes(secret));
+            var securityKey = new SymmetricSecurityKey(hmac.Key);
+
+            validationParameters.IssuerSigningKey = securityKey;
+        }
+
+        tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
 
         var jwtToken = (JwtSecurityToken)validatedToken;
 
         return jwtToken;
     }
-
 }
