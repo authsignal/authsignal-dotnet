@@ -177,7 +177,6 @@ public class AuthsignalClient : IAuthsignalClient
         var other = JsonSerializer.Deserialize<JwtOtherData>(json, _serializeOptions);
         var idempotencyKey = other?.IdempotencyKey;
         var actionCode = other?.ActionCode;
-        var username = other?.Username;
 
         if (userId == null || idempotencyKey == null || actionCode == null) throw new Exception("Invalid token");
 
@@ -186,7 +185,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         var success = action?.State == UserActionState.CHALLENGE_SUCCEEDED;
 
-        return new ValidateChallengeResponse(success, action?.State, userId, username);
+        return new ValidateChallengeResponse(success, action?.State, userId);
     }
 
     public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request,
