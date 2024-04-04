@@ -59,16 +59,19 @@ public record class ActionResponse(
 );
 
 public record class ValidateChallengeRequest(
-    string? UserId,
     string Token
 );
 
 public record class ValidateChallengeResponse(
-    bool Success,
-    UserActionState? State,
+    bool IsValid,
+    UserActionState State,
+    string? StateUpdatedAt,
     string? UserId,
-    string? Username
+    [property: JsonPropertyName("actionCode")] string? Action,
+    string? IdempotencyKey,
+    string? VerificationMethod
 );
+
 
 public record class AuthenticatorRequest(
     string UserId,
