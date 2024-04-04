@@ -72,7 +72,6 @@ public record class ValidateChallengeResponse(
     string? VerificationMethod
 );
 
-
 public record class AuthenticatorRequest(
     string UserId,
     OobChannel OobChannel,
