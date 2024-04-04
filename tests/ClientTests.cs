@@ -33,11 +33,13 @@ public class ClientTests : TestBase
     {
         var trackResponse = await AuthsignalClient.Track(new(UserId: Configuration["UserId"], Action: "Login"));
 
-        var request = new ValidateChallengeRequest(UserId: Configuration["UserId"], Token: trackResponse.Token);
+        var request = new ValidateChallengeRequest(Token: trackResponse.Token);
 
         var response = await AuthsignalClient.ValidateChallenge(request);
 
         Assert.NotNull(response);
+        Assert.Equal("Login", response.Action);
+        Assert.Equal(Configuration["UserId"], response.UserId);
     }
 
     [Fact]

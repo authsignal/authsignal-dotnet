@@ -1,7 +1,4 @@
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -112,6 +109,7 @@ public class AuthsignalClient : IAuthsignalClient
             var responseData = response.Content == null
                 ? null
                 : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             throw new AuthsignalException((int)response.StatusCode, responseData);
         }
     }
@@ -140,28 +138,28 @@ public class AuthsignalClient : IAuthsignalClient
 
     public async Task<ValidateChallengeResponse> ValidateChallenge(ValidateChallengeRequest request, CancellationToken cancellationToken = default)
     {
-        var jwtToken = ValidateToken(request.Token, _secret);
+        using (var response = await _httpClient.SendAsync(
+                  new HttpRequestMessage(HttpMethod.Post, "validate")
+                  {
+                      Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+                  }, cancellationToken).ConfigureAwait(false))
 
-        var userId = jwtToken.Subject;
-        var json = jwtToken.Claims.First(x => x.Type == "other").Value;
-        var other = JsonSerializer.Deserialize<JwtOtherData>(json, _serializeOptions);
-        var idempotencyKey = other?.IdempotencyKey;
-        var actionCode = other?.ActionCode;
-        var username = other?.Username;
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return JsonSerializer.Deserialize<ValidateChallengeResponse>(content, _serializeOptions)!;
 
-        if (userId == null || idempotencyKey == null || actionCode == null) throw new Exception("Invalid token");
+                default:
+                    var responseData = response.Content == null
+                        ? null
+                        : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        if (request.UserId != null && request.UserId != userId) throw new Exception("Invalid user");
-
-        var action = await GetAction(new ActionRequest(userId, actionCode, idempotencyKey), cancellationToken).ConfigureAwait(false);
-
-        var success = action?.State == UserActionState.CHALLENGE_SUCCEEDED;
-
-        return new ValidateChallengeResponse(success, action?.State, userId, username);
+                    throw new AuthsignalException((int)response.StatusCode, responseData);
+            }
     }
 
-    public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request, CancellationToken cancellationToken = default)
     {
         var body = new AuthenticatorRequestBody(
             request.OobChannel,
@@ -191,25 +189,4 @@ public class AuthsignalClient : IAuthsignalClient
         var textAsBytes = Encoding.UTF8.GetBytes(textToEncode);
         return Convert.ToBase64String(textAsBytes);
     }
-
-    private static JwtSecurityToken ValidateToken(string token, string secret)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-
-        var hmac = new HMACSHA256(Encoding.ASCII.GetBytes(secret));
-        var securityKey = new SymmetricSecurityKey(hmac.Key);
-
-        tokenHandler.ValidateToken(token, new TokenValidationParameters
-        {
-            IssuerSigningKey = securityKey,
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true
-        }, out var validatedToken);
-
-        var jwtToken = (JwtSecurityToken)validatedToken;
-
-        return jwtToken;
-    }
-
 }
