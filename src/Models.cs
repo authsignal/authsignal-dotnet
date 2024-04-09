@@ -59,7 +59,8 @@ public record class ActionResponse(
 );
 
 public record class ValidateChallengeRequest(
-    string Token
+    string Token,
+    string? UserId = null
 );
 
 public record class ValidateChallengeResponse(
