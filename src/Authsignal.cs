@@ -7,25 +7,23 @@ namespace Authsignal;
 
 public class AuthsignalClient : IAuthsignalClient
 {
-    internal const string DEFAULT_BASE_ADDRESS = "https://api.authsignal.com/v1/";
+    internal const string DEFAULT_BASE_URL = "https://api.authsignal.com/v1/";
 
     private readonly HttpClient _httpClient;
-    private readonly string? _redirectUrl;
-    private readonly string _secret;
     private readonly JsonSerializerOptions _serializeOptions;
 
-    internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? redirectUrl = null, string? baseAddress = null)
+    internal AuthsignalClient(IHttpClientFactory httpClientFactory, string secret, string? baseUrl = null)
     {
-        _secret = secret;
-        _redirectUrl = redirectUrl;
+        string baseAddress = baseUrl ?? DEFAULT_BASE_URL;
 
-        if (baseAddress != null && !baseAddress.EndsWith("/"))
+        if (!baseAddress.EndsWith("/"))
         {
             baseAddress += "/";
         }
 
         _httpClient = httpClientFactory.CreateClient(nameof(AuthsignalClient));
-        _httpClient.BaseAddress = new Uri(baseAddress ?? DEFAULT_BASE_ADDRESS);
+
+        _httpClient.BaseAddress = new Uri(baseAddress);
 
         _serializeOptions = new JsonSerializerOptions
         {
@@ -36,10 +34,9 @@ public class AuthsignalClient : IAuthsignalClient
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{secret}:")}");
     }
 
-    public AuthsignalClient(string secret, string? redirectUrl = null, string baseAddress = DEFAULT_BASE_ADDRESS)
+    public AuthsignalClient(string secret, string? baseUrl = null)
     {
-        _secret = secret;
-        _redirectUrl = redirectUrl;
+        string baseAddress = baseUrl ?? DEFAULT_BASE_URL;
 
         if (!baseAddress.EndsWith("/"))
         {
@@ -62,21 +59,76 @@ public class AuthsignalClient : IAuthsignalClient
 
     public async Task<UserResponse> GetUser(UserRequest request, CancellationToken cancellationToken = default)
     {
-        using (var response = await _httpClient
-                   .SendAsync(new HttpRequestMessage(HttpMethod.Get, $"users/{request.UserId}"),
-                       HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"users/{request.UserId}");
+
+        using var response = await _httpClient
+            .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response.StatusCode == HttpStatusCode.OK)
         {
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<UserResponse>(content, _serializeOptions)!;
+        }
+
+        var responseData = response.Content == null
+            ? null
+            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        throw new AuthsignalException((int)response.StatusCode, responseData);
+    }
+
+    public async Task<UserResponse> UpdateUser(UpdateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        var body = new UpdateUserRequestBody(
+            Email: request.Email,
+            PhoneNumber: request.PhoneNumber,
+            Username: request.Username,
+            DisplayName: request.DisplayName,
+            Custom: request.Custom);
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.OK:
                 var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JsonSerializer.Deserialize<UserResponse>(content, _serializeOptions)!;
-            }
 
-            var responseData = response.Content == null
-                ? null
-                : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            throw new AuthsignalException((int)response.StatusCode, responseData);
+            default:
+                var responseData = response.Content == null
+                    ? null
+                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                throw new AuthsignalException((int)response.StatusCode, responseData);
         }
+    }
+
+    public async Task<UserAuthenticator[]> GetAuthenticators(UserRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"users/{request.UserId}/authenticators");
+
+        using var response = await _httpClient
+            .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<UserAuthenticator[]>(content, _serializeOptions)!;
+        }
+
+        var responseData = response.Content == null
+            ? null
+            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        throw new AuthsignalException((int)response.StatusCode, responseData);
     }
 
     public async Task<TrackResponse> Track(TrackRequest request, CancellationToken cancellationToken = default)
@@ -86,102 +138,133 @@ public class AuthsignalClient : IAuthsignalClient
             PhoneNumber: request.PhoneNumber,
             Username: request.Username,
             IdempotencyKey: request.IdempotencyKey,
-            RedirectUrl: request.RedirectUrl ?? _redirectUrl,
+            RedirectUrl: request.RedirectUrl,
             IpAddress: request.IpAddress,
             UserAgent: request.UserAgent,
             DeviceId: request.DeviceId,
             Scope: request.Scope,
             Custom: request.Custom,
-            RedirectToSettings: request.RedirectToSettings);
+            RedirectToSettings: request.RedirectToSettings,
+            ChallengeId: request.ChallengeId);
 
-        using (var response = await _httpClient.SendAsync(
-                   new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/actions/{request.Action}")
-                   {
-                       Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
-                   }, cancellationToken).ConfigureAwait(false))
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/actions/{request.Action}")
         {
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonSerializer.Deserialize<TrackResponse>(content, _serializeOptions)!;
-            }
+            Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
+        };
 
-            var responseData = response.Content == null
-                ? null
-                : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            throw new AuthsignalException((int)response.StatusCode, responseData);
-        }
-    }
-
-    public async Task<ActionResponse?> GetAction(ActionRequest request, CancellationToken cancellationToken = default)
-    {
-        using var response = await _httpClient.SendAsync(
-            new HttpRequestMessage(HttpMethod.Get,
-                $"users/{request.UserId}/actions/{request.Action}/{request.IdempotencyKey}"),
-            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-
-        switch (response.StatusCode)
-        {
-            case HttpStatusCode.OK:
-                var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonSerializer.Deserialize<ActionResponse>(content, _serializeOptions)!;
-            case HttpStatusCode.NotFound:
-                return default;
-            default:
-                var responseData = response.Content == null
-                    ? null
-                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                throw new AuthsignalException((int)response.StatusCode, responseData);
-        }
-    }
-
-    public async Task<ValidateChallengeResponse> ValidateChallenge(ValidateChallengeRequest request, CancellationToken cancellationToken = default)
-    {
-        using (var response = await _httpClient.SendAsync(
-                  new HttpRequestMessage(HttpMethod.Post, "validate")
-                  {
-                      Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
-                  }, cancellationToken).ConfigureAwait(false))
-
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.OK:
-                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    return JsonSerializer.Deserialize<ValidateChallengeResponse>(content, _serializeOptions)!;
-
-                default:
-                    var responseData = response.Content == null
-                        ? null
-                        : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                    throw new AuthsignalException((int)response.StatusCode, responseData);
-            }
-    }
-
-    public async Task<AuthenticatorResponse> EnrollVerifiedAuthenticator(AuthenticatorRequest request, CancellationToken cancellationToken = default)
-    {
-        var body = new AuthenticatorRequestBody(
-            request.OobChannel,
-            Email: request.Email,
-            PhoneNumber: request.PhoneNumber);
-
-        using var response = await _httpClient.SendAsync(
-            new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/authenticators")
-            {
-                Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
-            }, cancellationToken).ConfigureAwait(false);
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<AuthenticatorResponse>(content, _serializeOptions)!;
+            return JsonSerializer.Deserialize<TrackResponse>(content, _serializeOptions)!;
         }
 
         var responseData = response.Content == null
             ? null
             : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
         throw new AuthsignalException((int)response.StatusCode, responseData);
+    }
+
+    public async Task<ActionResponse?> GetAction(ActionRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"users/{request.UserId}/actions/{request.Action}/{request.IdempotencyKey}");
+
+        using var response = await _httpClient
+            .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.OK:
+                var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                return JsonSerializer.Deserialize<ActionResponse>(content, _serializeOptions)!;
+
+            case HttpStatusCode.NotFound:
+                return default;
+
+            default:
+                var responseData = response.Content == null
+                    ? null
+                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                throw new AuthsignalException((int)response.StatusCode, responseData);
+        }
+    }
+
+    public async Task<EnrollVerifiedAuthenticatorResponse> EnrollVerifiedAuthenticator(EnrollVerifiedAuthenticatorRequest request, CancellationToken cancellationToken = default)
+    {
+        var body = new EnrollVerifiedAuthenticatorRequestBody(
+            request.VerificationMethod,
+            Email: request.Email,
+            PhoneNumber: request.PhoneNumber);
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/authenticators")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await _httpClient
+            .SendAsync(httpRequest, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<EnrollVerifiedAuthenticatorResponse>(content, _serializeOptions)!;
+        }
+
+        var responseData = response.Content == null
+            ? null
+            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        throw new AuthsignalException((int)response.StatusCode, responseData);
+    }
+
+    public async Task<DeleteAuthenticatorResponse> DeleteAuthenticator(AuthenticatorRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, $"users/{request.UserId}/authenticators/{request.UserAuthenticatorId}");
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<DeleteAuthenticatorResponse>(content, _serializeOptions)!;
+        }
+
+        var responseData = response.Content == null
+            ? null
+            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        throw new AuthsignalException((int)response.StatusCode, responseData);
+    }
+
+    public async Task<ValidateChallengeResponse> ValidateChallenge(ValidateChallengeRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "validate")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.OK:
+                var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonSerializer.Deserialize<ValidateChallengeResponse>(content, _serializeOptions)!;
+
+            default:
+                var responseData = response.Content == null
+                    ? null
+                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                throw new AuthsignalException((int)response.StatusCode, responseData);
+        }
     }
 
     private static string Base64Encode(string textToEncode)

@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
-		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
 		<RootNamespace>Authsignal</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -11,9 +10,9 @@
 		<Company>Authsignal</Company>
 		<Description>The Authsignal client for dotnet</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageTags>Authsignal, MFA, 2FA, Authentication</PackageTags>
+		<PackageTags>Authsignal, MFA, 2FA, Authentication, Passwordless, Passkeys</PackageTags>
 		<RepositoryUrl>https://github.com/authsignal/authsignal-dotnet</RepositoryUrl>
-		<Version>1.14.0</Version>
+		<Version>2.0.1</Version>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<DebugSymbols>true</DebugSymbols>
@@ -29,8 +28,8 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.AspNetCore.App" />
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.*" />
