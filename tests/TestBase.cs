@@ -17,7 +17,10 @@ public partial class TestBase
 
     public TestBase()
     {
-        _services.AddAuthsignal(Configuration["Secret"], null, Configuration["BaseUrl"]);
+        var secret = Configuration["Secret"]!;
+        var baseUrl = Configuration["BaseUrl"]!;
+
+        _services.AddAuthsignal(secret, baseUrl);
         ServiceProvider = _services.BuildServiceProvider();
     }
 }
