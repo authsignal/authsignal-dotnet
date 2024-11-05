@@ -7,7 +7,31 @@ public record class UserRequest(
 );
 
 public record class UserResponse(
-    bool IsEnrolled
+    bool IsEnrolled,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
+    string? DisplayName = null,
+    VerificationMethod[]? EnrolledVerificationMethods = null,
+    VerificationMethod[]? AllowedVerificationMethods = null,
+    Dictionary<string, string>? Custom = null
+);
+
+public record class UpdateUserRequest(
+    string UserId,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
+    string? DisplayName = null,
+    Dictionary<string, string>? Custom = null
+);
+
+public record class UpdateUserRequestBody(
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
+    string? DisplayName = null,
+    Dictionary<string, string>? Custom = null
 );
 
 public record class TrackRequest(
@@ -22,8 +46,9 @@ public record class TrackRequest(
     string? UserAgent = null,
     string? DeviceId = null,
     string? Scope = null,
-    dynamic? Custom = null,
-    bool? RedirectToSettings = false
+    Dictionary<string, string>? Custom = null,
+    bool? RedirectToSettings = false,
+    string? ChallengeId = null
 );
 
 public record class TrackRequestBody(
@@ -36,8 +61,9 @@ public record class TrackRequestBody(
     string? UserAgent = null,
     string? DeviceId = null,
     string? Scope = null,
-    dynamic? Custom = null,
-    bool? RedirectToSettings = false
+    Dictionary<string, string>? Custom = null,
+    bool? RedirectToSettings = false,
+    string? ChallengeId = null
 );
 
 public record class TrackResponse(
@@ -45,7 +71,9 @@ public record class TrackResponse(
     string IdempotencyKey,
     string Url,
     string Token,
-    bool IsEnrolled
+    bool IsEnrolled,
+    VerificationMethod[] EnrolledVerificationMethods,
+    VerificationMethod[] AllowedVerificationMethods
 );
 
 public record class ActionRequest(
@@ -55,7 +83,8 @@ public record class ActionRequest(
 );
 
 public record class ActionResponse(
-    UserActionState State
+    UserActionState State,
+    VerificationMethod VerificationMethod
 );
 
 public record class ValidateChallengeRequest(
@@ -70,48 +99,44 @@ public record class ValidateChallengeResponse(
     string? UserId,
     [property: JsonPropertyName("actionCode")] string? Action,
     string? IdempotencyKey,
-    string? VerificationMethod
+    VerificationMethod? VerificationMethod
 );
 
-public record class AuthenticatorRequest(
+public record class EnrollVerifiedAuthenticatorRequest(
     string UserId,
-    OobChannel OobChannel,
+    VerificationMethod VerificationMethod,
     string? PhoneNumber = null,
     string? Email = null
 );
 
-public record class AuthenticatorRequestBody(
-    OobChannel OobChannel,
+public record class EnrollVerifiedAuthenticatorRequestBody(
+   VerificationMethod VerificationMethod,
     string? PhoneNumber = null,
     string? Email = null
 );
 
-public record class AuthenticatorResponse(
+public record class EnrollVerifiedAuthenticatorResponse(
     UserAuthenticator Authenticator,
     List<string> RecoveryCodes
 );
 
+public record class AuthenticatorRequest(
+    string UserId,
+    string UserAuthenticatorId
+);
+
+public record class DeleteAuthenticatorResponse(
+    bool Success
+);
+
 public record class UserAuthenticator(
+    string UserId,
     string UserAuthenticatorId,
-    AuthenticatorType AuthenticatorType,
-    bool IsDefault,
-    OobChannel? OobChannel,
+    VerificationMethod VerificationMethod,
     string CreatedAt,
+    string? VerifiedAt = null,
     string? Email = null,
     string? PhoneNumber = null
-);
-
-public record class EmailRequest(
-    string Email,
-    string? RedirectUrl = null
-);
-
-public record class EmailRequestBody(
-    string? RedirectUrl = null
-);
-
-public record class EmailResponse(
-    string Url
 );
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -125,22 +150,17 @@ public enum UserActionState
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum AuthenticatorType
-{
-    OOB,
-    OTP
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum OobChannel
+public enum VerificationMethod
 {
     SMS,
     EMAIL_MAGIC_LINK,
-    EMAIL_OTP
+    EMAIL_OTP,
+    AUTHENTICATOR_APP,
+    PASSKEY,
+    SECURITY_KEY,
+    PUSH,
+    VERIFF,
+    IPROOV,
+    IDVERSE,
+    RECOVERY_CODE,
 }
-
-public record class JwtOtherData(
-    string IdempotencyKey,
-    string ActionCode,
-    string Username
-);
