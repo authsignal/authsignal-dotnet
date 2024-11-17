@@ -161,7 +161,10 @@ public enum UserActionState
     BLOCK,
     CHALLENGE_REQUIRED,
     CHALLENGE_SUCCEEDED,
-    CHALLENGE_FAILED
+    CHALLENGE_FAILED,
+    REVIEW_REQUIRED,
+    REVIEW_SUCCEEDED,
+    REVIEW_FAILED
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
