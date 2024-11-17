@@ -92,9 +92,7 @@ public class ClientTests : TestBase
 
         var deleteRequest = new AuthenticatorRequest(UserId: userId, UserAuthenticatorId: userAuthenticatorId);
 
-        var deleteResponse = await AuthsignalClient.DeleteAuthenticator(deleteRequest);
-
-        Assert.True(deleteResponse.Success);
+        await AuthsignalClient.DeleteAuthenticator(deleteRequest);
 
         var updatedAuthenticators = await AuthsignalClient.GetAuthenticators(userRequest);
 
@@ -108,11 +106,20 @@ public class ClientTests : TestBase
     {
         var userId = Guid.NewGuid().ToString();
 
+        var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
+           UserId: userId,
+           VerificationMethod: VerificationMethod.SMS,
+           PhoneNumber: "+6427000000");
+
+        var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
+
+        Assert.NotNull(enrollResponse);
+
         var userRequest = new UserRequest(UserId: userId);
 
         var userResponse = await AuthsignalClient.GetUser(userRequest);
 
-        Assert.False(userResponse.IsEnrolled);
+        Assert.True(userResponse.IsEnrolled);
         Assert.Null(userResponse.Email);
 
         var email = "test@example.com";
@@ -131,11 +138,16 @@ public class ClientTests : TestBase
 
         var updateUserResponse = await AuthsignalClient.UpdateUser(updateUserRequest);
 
-        Assert.False(updateUserResponse.IsEnrolled);
         Assert.Equal(email, updateUserResponse.Email);
         Assert.Equal(phoneNumber, updateUserResponse.PhoneNumber);
         Assert.Equal(username, updateUserResponse.Username);
         Assert.Equal(displayName, updateUserResponse.DisplayName);
         Assert.Equal("bar", custom["foo"]);
+
+        await AuthsignalClient.DeleteUser(userRequest);
+
+        var deletedUserResponse = await AuthsignalClient.GetUser(userRequest);
+
+        Assert.False(deletedUserResponse.IsEnrolled);
     }
 }
