@@ -26,6 +26,14 @@ public record class UpdateUserRequest(
     Dictionary<string, string>? Custom = null
 );
 
+public record class UpdateUserResponse(
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
+    string? DisplayName = null,
+    Dictionary<string, string>? Custom = null
+);
+
 public record class UpdateUserRequestBody(
     string? Email = null,
     string? PhoneNumber = null,
@@ -87,6 +95,17 @@ public record class ActionResponse(
     VerificationMethod VerificationMethod
 );
 
+public record class UpdateActionStateRequest(
+    string UserId,
+    string Action,
+    string IdempotencyKey,
+    UserActionState State
+);
+
+public record class UpdateActionStateRequestBody(
+    UserActionState State
+);
+
 public record class ValidateChallengeRequest(
     string Token,
     string? UserId = null
@@ -123,10 +142,6 @@ public record class EnrollVerifiedAuthenticatorResponse(
 public record class AuthenticatorRequest(
     string UserId,
     string UserAuthenticatorId
-);
-
-public record class DeleteAuthenticatorResponse(
-    bool Success
 );
 
 public record class UserAuthenticator(
