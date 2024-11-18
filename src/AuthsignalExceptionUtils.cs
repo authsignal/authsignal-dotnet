@@ -5,7 +5,7 @@ namespace Authsignal;
 
 public static class AuthsignalExceptionUtils
 {
-    private static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
