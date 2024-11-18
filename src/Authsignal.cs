@@ -287,7 +287,7 @@ public class AuthsignalClient : IAuthsignalClient
     {
         var body = new UpdateActionStateRequestBody(State: request.State);
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"users/{request.UserId}/actions/{request.Action}/{request.IdempotencyKey}")
+        var httpRequest = new HttpRequestMessage(new HttpMethod("PATCH"), $"users/{request.UserId}/actions/{request.Action}/{request.IdempotencyKey}")
         {
             Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
         };
