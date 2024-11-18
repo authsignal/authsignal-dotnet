@@ -182,3 +182,8 @@ public enum VerificationMethod
     IDVERSE,
     RECOVERY_CODE,
 }
+
+public record class AuthsignalErrorResponse(
+    string Error,
+    string ErrorDescription
+);

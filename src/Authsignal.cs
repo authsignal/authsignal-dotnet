@@ -65,17 +65,14 @@ public class AuthsignalClient : IAuthsignalClient
             .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             return JsonSerializer.Deserialize<UserResponse>(content, _serializeOptions)!;
         }
 
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
+        throw await AuthsignalExceptionUtils.NewResponseException(response);
     }
 
     public async Task<UpdateUserResponse> UpdateUser(UpdateUserRequest request, CancellationToken cancellationToken = default)
@@ -101,11 +98,7 @@ public class AuthsignalClient : IAuthsignalClient
                 return JsonSerializer.Deserialize<UpdateUserResponse>(content, _serializeOptions)!;
 
             default:
-                var responseData = response.Content == null
-                    ? null
-                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                throw new AuthsignalException((int)response.StatusCode, responseData);
+                throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
     }
 
@@ -115,16 +108,10 @@ public class AuthsignalClient : IAuthsignalClient
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (!response.IsSuccessStatusCode)
         {
-            return;
+            throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
-
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
     }
 
     public async Task<UserAuthenticator[]> GetAuthenticators(UserRequest request, CancellationToken cancellationToken = default)
@@ -135,18 +122,14 @@ public class AuthsignalClient : IAuthsignalClient
             .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<UserAuthenticator[]>(content, _serializeOptions)!;
         }
 
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
+        throw await AuthsignalExceptionUtils.NewResponseException(response);
     }
 
     public async Task<EnrollVerifiedAuthenticatorResponse> EnrollVerifiedAuthenticator(EnrollVerifiedAuthenticatorRequest request, CancellationToken cancellationToken = default)
@@ -165,17 +148,14 @@ public class AuthsignalClient : IAuthsignalClient
             .SendAsync(httpRequest, cancellationToken)
             .ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             return JsonSerializer.Deserialize<EnrollVerifiedAuthenticatorResponse>(content, _serializeOptions)!;
         }
 
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
+        throw await AuthsignalExceptionUtils.NewResponseException(response);
     }
 
     public async Task DeleteAuthenticator(AuthenticatorRequest request, CancellationToken cancellationToken = default)
@@ -184,16 +164,10 @@ public class AuthsignalClient : IAuthsignalClient
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (!response.IsSuccessStatusCode)
         {
-            return;
+            throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
-
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
     }
 
     public async Task<TrackResponse> Track(TrackRequest request, CancellationToken cancellationToken = default)
@@ -219,17 +193,14 @@ public class AuthsignalClient : IAuthsignalClient
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
             return JsonSerializer.Deserialize<TrackResponse>(content, _serializeOptions)!;
         }
 
-        var responseData = response.Content == null
-            ? null
-            : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        throw new AuthsignalException((int)response.StatusCode, responseData);
+        throw await AuthsignalExceptionUtils.NewResponseException(response);
     }
 
     public async Task<ValidateChallengeResponse> ValidateChallenge(ValidateChallengeRequest request, CancellationToken cancellationToken = default)
@@ -245,14 +216,11 @@ public class AuthsignalClient : IAuthsignalClient
         {
             case HttpStatusCode.OK:
                 var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                 return JsonSerializer.Deserialize<ValidateChallengeResponse>(content, _serializeOptions)!;
 
             default:
-                var responseData = response.Content == null
-                    ? null
-                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                throw new AuthsignalException((int)response.StatusCode, responseData);
+                throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
     }
 
@@ -275,11 +243,7 @@ public class AuthsignalClient : IAuthsignalClient
                 return default;
 
             default:
-                var responseData = response.Content == null
-                    ? null
-                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                throw new AuthsignalException((int)response.StatusCode, responseData);
+                throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
     }
 
@@ -301,11 +265,7 @@ public class AuthsignalClient : IAuthsignalClient
                 return JsonSerializer.Deserialize<ActionResponse>(content, _serializeOptions)!;
 
             default:
-                var responseData = response.Content == null
-                    ? null
-                    : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                throw new AuthsignalException((int)response.StatusCode, responseData);
+                throw await AuthsignalExceptionUtils.NewResponseException(response);
         }
     }
 
