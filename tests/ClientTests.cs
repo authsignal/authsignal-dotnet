@@ -3,105 +3,6 @@
 public class ClientTests : TestBase
 {
     [Fact]
-    public async Task GetUser()
-    {
-        var request = new UserRequest(UserId: Configuration["UserId"]!);
-
-        var response = await AuthsignalClient.GetUser(request);
-
-        Assert.NotNull(response);
-    }
-
-    [Fact]
-    public async Task Track()
-    {
-        var request = new TrackRequest(UserId: Configuration["UserId"]!, Action: "Login");
-
-        var response = await AuthsignalClient.Track(request);
-
-        Assert.NotNull(response);
-    }
-
-    [Fact]
-    public async Task GetAction()
-    {
-        var trackRequest = new TrackRequest(UserId: Configuration["UserId"]!, Action: "Login");
-
-        var trackResponse = await AuthsignalClient.Track(trackRequest);
-
-        var actionRequest = new ActionRequest(
-            UserId: Configuration["UserId"]!,
-            Action: "Login",
-            IdempotencyKey: trackResponse.IdempotencyKey);
-
-        var actionResponse = await AuthsignalClient.GetAction(actionRequest);
-
-        Assert.NotNull(actionResponse);
-    }
-
-    [Fact]
-    public async Task EnrollVerifiedAuthenticator()
-    {
-        var request = new EnrollVerifiedAuthenticatorRequest(
-            UserId: Configuration["UserId"]!,
-            VerificationMethod: VerificationMethod.SMS,
-            PhoneNumber: "+6427000000");
-
-        var response = await AuthsignalClient.EnrollVerifiedAuthenticator(request);
-
-        Assert.NotNull(response);
-    }
-
-    [Fact]
-    public async Task ValidateChallenge()
-    {
-        var trackRequest = new TrackRequest(UserId: Configuration["UserId"]!, Action: "Login");
-
-        var trackResponse = await AuthsignalClient.Track(trackRequest);
-
-        var validateRequest = new ValidateChallengeRequest(Token: trackResponse.Token);
-
-        var validateResponse = await AuthsignalClient.ValidateChallenge(validateRequest);
-
-        Assert.NotNull(validateResponse);
-        Assert.Equal("Login", validateResponse.Action);
-        Assert.Equal(Configuration["UserId"]!, validateResponse.UserId);
-    }
-
-    [Fact]
-    public async Task TestAuthenticators()
-    {
-        var userId = Configuration["UserId"]!;
-
-        var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
-           UserId: userId,
-           VerificationMethod: VerificationMethod.SMS,
-           PhoneNumber: "+6427000000");
-
-        var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
-
-        var userAuthenticatorId = enrollResponse.Authenticator.UserAuthenticatorId;
-
-        var userRequest = new UserRequest(UserId: userId);
-
-        var allAuthenticators = await AuthsignalClient.GetAuthenticators(userRequest);
-
-        var match = allAuthenticators.FirstOrDefault(a => a.UserAuthenticatorId == userAuthenticatorId);
-
-        Assert.NotNull(match);
-
-        var deleteRequest = new AuthenticatorRequest(UserId: userId, UserAuthenticatorId: userAuthenticatorId);
-
-        await AuthsignalClient.DeleteAuthenticator(deleteRequest);
-
-        var updatedAuthenticators = await AuthsignalClient.GetAuthenticators(userRequest);
-
-        var updatedMatch = updatedAuthenticators.FirstOrDefault(a => a.UserAuthenticatorId == userAuthenticatorId);
-
-        Assert.Null(updatedMatch);
-    }
-
-    [Fact]
     public async Task TestUser()
     {
         var userId = Guid.NewGuid().ToString();
@@ -149,5 +50,97 @@ public class ClientTests : TestBase
         var deletedUserResponse = await AuthsignalClient.GetUser(userRequest);
 
         Assert.False(deletedUserResponse.IsEnrolled);
+    }
+
+    [Fact]
+    public async Task TestAuthenticator()
+    {
+        var userId = Guid.NewGuid().ToString();
+
+        var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
+           UserId: userId,
+           VerificationMethod: VerificationMethod.SMS,
+           PhoneNumber: "+6427000000");
+
+        var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
+
+        Assert.NotNull(enrollResponse);
+
+        var userRequest = new UserRequest(UserId: userId);
+
+        var authenticatorsResponse = await AuthsignalClient.GetAuthenticators(userRequest);
+
+        Assert.NotNull(authenticatorsResponse);
+        Assert.NotEmpty(authenticatorsResponse);
+
+        var authenticator = authenticatorsResponse.First();
+
+        Assert.NotNull(authenticator);
+        Assert.Equal(VerificationMethod.SMS, authenticator.VerificationMethod);
+
+        var authenticatorRequest = new AuthenticatorRequest(
+            UserId: userId,
+            UserAuthenticatorId: authenticator.UserAuthenticatorId);
+
+        await AuthsignalClient.DeleteAuthenticator(authenticatorRequest);
+
+        var emptyAuthenticatorsResponse = await AuthsignalClient.GetAuthenticators(userRequest);
+
+        Assert.Empty(emptyAuthenticatorsResponse);
+    }
+
+    [Fact]
+    public async Task TestAction()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var action = "Login";
+
+        var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
+           UserId: userId,
+           VerificationMethod: VerificationMethod.SMS,
+           PhoneNumber: "+6427000000");
+
+        var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
+
+        Assert.NotNull(enrollResponse);
+
+        var trackRequest = new TrackRequest(UserId: userId, Action: action);
+
+        var trackResponse = await AuthsignalClient.Track(trackRequest);
+
+        var idempotencyKey = trackResponse.IdempotencyKey;
+
+        Assert.NotNull(trackResponse);
+        Assert.Equal(UserActionState.CHALLENGE_REQUIRED, trackResponse.State);
+
+        var validateRequest = new ValidateChallengeRequest(Token: trackResponse.Token);
+
+        var validateResponse = await AuthsignalClient.ValidateChallenge(validateRequest);
+
+        Assert.NotNull(validateResponse);
+        Assert.Equal(action, validateResponse.Action);
+        Assert.Equal(userId, validateResponse.UserId);
+        Assert.Equal(UserActionState.CHALLENGE_REQUIRED, validateResponse.State);
+        Assert.False(validateResponse.IsValid);
+
+        var updateActionStateRequest = new UpdateActionStateRequest(
+            UserId: userId,
+            Action: action,
+            IdempotencyKey: idempotencyKey,
+            State: UserActionState.REVIEW_REQUIRED);
+
+        var updateActionStateResponse = await AuthsignalClient.UpdateActionState(updateActionStateRequest);
+
+        Assert.NotNull(updateActionStateResponse);
+
+        var actionRequest = new ActionRequest(
+           UserId: userId,
+           Action: action,
+           IdempotencyKey: idempotencyKey);
+
+        var actionResponse = await AuthsignalClient.GetAction(actionRequest);
+
+        Assert.NotNull(actionResponse);
+        Assert.Equal(UserActionState.REVIEW_REQUIRED, actionResponse.State);
     }
 }
