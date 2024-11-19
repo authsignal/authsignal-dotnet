@@ -143,4 +143,27 @@ public class ClientTests : TestBase
         Assert.NotNull(actionResponse);
         Assert.Equal(UserActionState.REVIEW_REQUIRED, actionResponse.State);
     }
+
+    [Fact]
+    public async Task TestInvalidSecretError()
+    {
+        var baseUrl = Configuration["BaseUrl"]!;
+
+        var secret = "invalid_secret";
+
+        var client = new AuthsignalClient(secret, baseUrl);
+
+        var userRequest = new UserRequest(UserId: Guid.NewGuid().ToString());
+
+        try
+        {
+            var userResponse = await client.GetUser(userRequest);
+        }
+        catch (AuthsignalException e)
+        {
+            Assert.Equal(401, e.StatusCode);
+            Assert.Equal("unauthorized", e.Error);
+            Assert.Equal("The request is unauthorized. Check that your API key and region base URL are correctly configured.", e.ErrorDescription);
+        }
+    }
 }

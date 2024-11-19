@@ -6,6 +6,7 @@ namespace Authsignal.Tests;
 public partial class TestBase
 {
     private readonly ServiceCollection _services = new ServiceCollection();
+
     protected readonly ServiceProvider ServiceProvider;
 
     protected IAuthsignalClient AuthsignalClient => ServiceProvider.GetRequiredService<IAuthsignalClient>();
@@ -21,6 +22,7 @@ public partial class TestBase
         var baseUrl = Configuration["BaseUrl"]!;
 
         _services.AddAuthsignal(secret, baseUrl);
+
         ServiceProvider = _services.BuildServiceProvider();
     }
 }
