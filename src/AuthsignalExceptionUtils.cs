@@ -17,10 +17,6 @@ public static class AuthsignalExceptionUtils
 
         var errorResponse = JsonSerializer.Deserialize<AuthsignalErrorResponse>(content, serializerOptions)!;
 
-        var errorMessage = errorResponse.ErrorDescription != null && errorResponse.ErrorDescription.Length > 0
-            ? errorResponse.ErrorDescription
-            : errorResponse.Error;
-
-        return new AuthsignalException((int)response.StatusCode, errorMessage);
+        return new AuthsignalException((int)response.StatusCode, errorResponse);
     }
 }
