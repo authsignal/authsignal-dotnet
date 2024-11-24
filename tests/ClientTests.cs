@@ -8,15 +8,16 @@ public class ClientTests : TestBase
         var userId = Guid.NewGuid().ToString();
 
         var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
-           UserId: userId,
-           VerificationMethod: VerificationMethod.SMS,
-           PhoneNumber: "+6427000000");
+            UserId: userId,
+            Attributes: new(
+                VerificationMethod: VerificationMethod.SMS,
+                PhoneNumber: "+6427000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
         Assert.NotNull(enrollResponse);
 
-        var userRequest = new UserRequest(UserId: userId);
+        var userRequest = new GetUserRequest(UserId: userId);
 
         var userResponse = await AuthsignalClient.GetUser(userRequest);
 
@@ -31,21 +32,24 @@ public class ClientTests : TestBase
 
         var updateUserRequest = new UpdateUserRequest(
             UserId: userId,
-            Email: email,
-            PhoneNumber: phoneNumber,
-            Username: username,
-            DisplayName: displayName,
-            Custom: custom);
+            Attributes: new(
+                Email: email,
+                PhoneNumber: phoneNumber,
+                Username: username,
+                DisplayName: displayName,
+                Custom: custom));
 
-        var updateUserResponse = await AuthsignalClient.UpdateUser(updateUserRequest);
+        var updatedAttributes = await AuthsignalClient.UpdateUser(updateUserRequest);
 
-        Assert.Equal(email, updateUserResponse.Email);
-        Assert.Equal(phoneNumber, updateUserResponse.PhoneNumber);
-        Assert.Equal(username, updateUserResponse.Username);
-        Assert.Equal(displayName, updateUserResponse.DisplayName);
+        Assert.Equal(email, updatedAttributes.Email);
+        Assert.Equal(phoneNumber, updatedAttributes.PhoneNumber);
+        Assert.Equal(username, updatedAttributes.Username);
+        Assert.Equal(displayName, updatedAttributes.DisplayName);
         Assert.Equal("bar", custom["foo"]);
 
-        await AuthsignalClient.DeleteUser(userRequest);
+        var deleteUserRequest = new DeleteUserRequest(UserId: userId);
+
+        await AuthsignalClient.DeleteUser(deleteUserRequest);
 
         var deletedUserResponse = await AuthsignalClient.GetUser(userRequest);
 
@@ -58,33 +62,34 @@ public class ClientTests : TestBase
         var userId = Guid.NewGuid().ToString();
 
         var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
-           UserId: userId,
-           VerificationMethod: VerificationMethod.SMS,
-           PhoneNumber: "+6427000000");
+            UserId: userId,
+            Attributes: new(
+                VerificationMethod: VerificationMethod.SMS,
+                PhoneNumber: "+6427000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
         Assert.NotNull(enrollResponse);
 
-        var userRequest = new UserRequest(UserId: userId);
+        var authenticatorsRequest = new GetAuthenticatorsRequest(UserId: userId);
 
-        var authenticatorsResponse = await AuthsignalClient.GetAuthenticators(userRequest);
+        var authenticators = await AuthsignalClient.GetAuthenticators(authenticatorsRequest);
 
-        Assert.NotNull(authenticatorsResponse);
-        Assert.NotEmpty(authenticatorsResponse);
+        Assert.NotNull(authenticators);
+        Assert.NotEmpty(authenticators);
 
-        var authenticator = authenticatorsResponse.First();
+        var authenticator = authenticators.First();
 
         Assert.NotNull(authenticator);
         Assert.Equal(VerificationMethod.SMS, authenticator.VerificationMethod);
 
-        var authenticatorRequest = new AuthenticatorRequest(
+        var authenticatorRequest = new DeleteAuthenticatorRequest(
             UserId: userId,
             UserAuthenticatorId: authenticator.UserAuthenticatorId);
 
         await AuthsignalClient.DeleteAuthenticator(authenticatorRequest);
 
-        var emptyAuthenticatorsResponse = await AuthsignalClient.GetAuthenticators(userRequest);
+        var emptyAuthenticatorsResponse = await AuthsignalClient.GetAuthenticators(authenticatorsRequest);
 
         Assert.Empty(emptyAuthenticatorsResponse);
     }
@@ -97,8 +102,9 @@ public class ClientTests : TestBase
 
         var enrollRequest = new EnrollVerifiedAuthenticatorRequest(
            UserId: userId,
-           VerificationMethod: VerificationMethod.SMS,
-           PhoneNumber: "+6427000000");
+           Attributes: new(
+               VerificationMethod: VerificationMethod.SMS,
+               PhoneNumber: "+6427000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
@@ -123,17 +129,17 @@ public class ClientTests : TestBase
         Assert.Equal(UserActionState.CHALLENGE_REQUIRED, validateResponse.State);
         Assert.False(validateResponse.IsValid);
 
-        var updateActionStateRequest = new UpdateActionStateRequest(
+        var updateActionRequest = new UpdateActionRequest(
             UserId: userId,
             Action: action,
             IdempotencyKey: idempotencyKey,
-            State: UserActionState.REVIEW_REQUIRED);
+            Attributes: new(State: UserActionState.REVIEW_REQUIRED));
 
-        var updateActionStateResponse = await AuthsignalClient.UpdateActionState(updateActionStateRequest);
+        var updatedAttributes = await AuthsignalClient.UpdateAction(updateActionRequest);
 
-        Assert.NotNull(updateActionStateResponse);
+        Assert.NotNull(updatedAttributes);
 
-        var actionRequest = new ActionRequest(
+        var actionRequest = new GetActionRequest(
            UserId: userId,
            Action: action,
            IdempotencyKey: idempotencyKey);
@@ -153,7 +159,7 @@ public class ClientTests : TestBase
 
         var client = new AuthsignalClient(secret, baseUrl);
 
-        var userRequest = new UserRequest(UserId: Guid.NewGuid().ToString());
+        var userRequest = new GetUserRequest(UserId: Guid.NewGuid().ToString());
 
         try
         {
@@ -164,6 +170,36 @@ public class ClientTests : TestBase
             Assert.Equal(401, e.StatusCode);
             Assert.Equal("unauthorized", e.Error);
             Assert.Equal("The request is unauthorized. Check that your API key and region base URL are correctly configured.", e.ErrorDescription);
+        }
+    }
+
+    [Fact]
+    public async Task TestPasskeyAuthenticator()
+    {
+        var userId = "b60429a1-6288-43dc-80c0-6a3e73dd51b9";
+
+        var authenticatorsRequest = new GetAuthenticatorsRequest(UserId: userId);
+
+        var authenticators = await AuthsignalClient.GetAuthenticators(authenticatorsRequest);
+
+        Assert.NotNull(authenticators);
+        Assert.NotEmpty(authenticators);
+
+        foreach (var authenticator in authenticators)
+        {
+            if (authenticator.VerificationMethod == VerificationMethod.PASSKEY)
+            {
+                var name = authenticator.WebauthnCredential?.AaguidMapping?.Name;
+
+                Assert.NotNull(name);
+
+                if (name != null)
+                {
+                    Assert.Contains(name, ["Google Password Manager", "iCloud Keychain"]);
+                }
+
+                Assert.Equal("Chrome", authenticator.WebauthnCredential?.ParsedUserAgent?.Browser?.Name);
+            }
         }
     }
 }
