@@ -1,7 +1,13 @@
-using System.Data;
+
 using System.Text.Json.Serialization;
 
 namespace Authsignal;
+
+public record class AuthsignalHttpRequest(
+    HttpMethod HttpMethod,
+    string Path,
+    HttpContent? Content = null
+);
 
 public record class GetUserRequest(
     string UserId
