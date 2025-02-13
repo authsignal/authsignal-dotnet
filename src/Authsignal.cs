@@ -249,7 +249,7 @@ public class AuthsignalClient : IAuthsignalClient
             return false;
         }
 
-        // Retry on connection error.
+        // Retry on connection error
         if (requestException != null)
         {
             return true;
@@ -293,5 +293,3 @@ public class AuthsignalClient : IAuthsignalClient
         return Convert.ToBase64String(textAsBytes);
     }
 }
-
-
