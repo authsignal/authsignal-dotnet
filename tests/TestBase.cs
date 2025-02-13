@@ -18,10 +18,10 @@ public partial class TestBase
 
     public TestBase()
     {
-        var secret = Configuration["Secret"]!;
-        var baseUrl = Configuration["BaseUrl"]!;
+        var apiSecretKey = Configuration["ApiSecretKey"]!;
+        var apiUrl = Configuration["ApiUrl"]!;
 
-        _services.AddAuthsignal(secret, baseUrl);
+        _services.AddAuthsignal(apiSecretKey, apiUrl);
 
         ServiceProvider = _services.BuildServiceProvider();
     }
