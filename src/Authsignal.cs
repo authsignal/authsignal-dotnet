@@ -13,7 +13,10 @@ public class AuthsignalClient : IAuthsignalClient
 
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _serializeOptions;
-    private readonly int retries;
+    private readonly int _retries;
+    private readonly Webhook _webhook;
+
+    public Webhook Webhook { get => _webhook; }
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string apiSecretKey, string? apiUrl = null, int? retries = null)
     {
@@ -36,7 +39,9 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
-        this.retries = retries ?? DEFAULT_RETRIES;
+        _retries = retries ?? DEFAULT_RETRIES;
+
+        _webhook = new Webhook(apiSecretKey);
     }
 
     public AuthsignalClient(string apiSecretKey, string? apiUrl = null, int? retries = null)
@@ -61,7 +66,9 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
-        this.retries = retries ?? DEFAULT_RETRIES;
+        _retries = retries ?? DEFAULT_RETRIES;
+
+        _webhook = new Webhook(apiSecretKey);
     }
 
     public async Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken = default)
@@ -244,7 +251,7 @@ public class AuthsignalClient : IAuthsignalClient
             HttpStatusCode? statusCode,
             HttpMethod? httpMethod)
     {
-        if (retryCount >= retries)
+        if (retryCount >= _retries)
         {
             return false;
         }
