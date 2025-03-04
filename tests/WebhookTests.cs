@@ -86,6 +86,8 @@ public class WebhookTests : TestBase
 
             Assert.NotNull(eventObj);
 
+            Assert.Equal(1, eventObj.Version);
+
             var actionCode = eventObj.Data?.GetValueOrDefault("actionCode");
 
             Assert.Equal("accountRecovery", actionCode);
