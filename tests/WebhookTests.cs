@@ -85,6 +85,10 @@ public class WebhookTests : TestBase
             var eventObj = AuthsignalClient.Webhook.ConstructEvent(payload, signature, tolerance);
 
             Assert.NotNull(eventObj);
+
+            var actionCode = eventObj.Data?.GetValueOrDefault("actionCode");
+
+            Assert.Equal("accountRecovery", actionCode);
         }
         catch
         {

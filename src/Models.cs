@@ -1,4 +1,5 @@
 
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Authsignal;
@@ -250,10 +251,10 @@ public record class UserAgentCpu(
 
 public record class WebhookEvent(
     int Version,
-    string? Type,
-    string? Id,
-    string? Source,
-    string? Time,
-    string? TenantId,
-    object? Data
+    string Type,
+    string Id,
+    string Source,
+    string Time,
+    string TenantId,
+    Dictionary<string, string>? Data
 );
