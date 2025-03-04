@@ -2,6 +2,8 @@
 
 public interface IAuthsignalClient
 {
+    public Webhook Webhook { get; }
+
     Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken = default);
 
     Task<UserAttributes> UpdateUser(UpdateUserRequest request, CancellationToken cancellationToken = default);

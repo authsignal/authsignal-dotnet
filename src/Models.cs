@@ -247,3 +247,13 @@ public record class UserAgentOs(
 public record class UserAgentCpu(
     string Architecture
 );
+
+public record class WebhookEvent(
+    int Version,
+    string? Type,
+    string? Id,
+    string? Source,
+    string? Time,
+    string? TenantId,
+    object? Data
+);
