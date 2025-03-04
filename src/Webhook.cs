@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Authsignal
 {
@@ -10,6 +11,13 @@ namespace Authsignal
         private const string VERSION = "v2";
 
         private readonly string apiSecretKey = apiSecretKey;
+
+        private readonly JsonSerializerOptions serializerOptions = new()
+        {
+            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
 
         public WebhookEvent ConstructEvent(string payload, string signature, int tolerance = DEFAULT_TOLERANCE)
         {
@@ -33,7 +41,7 @@ namespace Authsignal
                 throw new InvalidSignatureException("Signature mismatch.");
             }
 
-            WebhookEvent? webhookEvent = JsonConvert.DeserializeObject<WebhookEvent>(payload);
+            WebhookEvent? webhookEvent = JsonSerializer.Deserialize<WebhookEvent>(payload, serializerOptions);
 
             if (webhookEvent == null)
             {
