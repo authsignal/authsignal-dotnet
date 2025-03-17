@@ -1,4 +1,6 @@
-# authsignal-dotnet
+<img width="1070" alt="Authsignal" src="https://raw.githubusercontent.com/authsignal/authsignal-dotnet/main/.github/images/authsignal.png">
+
+# Authsignal .NET SDK
 
 The Authsignal .NET library for server-side applications.
 
