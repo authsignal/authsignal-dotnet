@@ -115,7 +115,7 @@ public record class ValidateChallengeRequest(
 
 public record class ValidateChallengeResponse(
     bool IsValid,
-    UserActionState State,
+    UserActionState? State,
     string? StateUpdatedAt,
     string? UserId,
     [property: JsonPropertyName("actionCode")] string? Action,
