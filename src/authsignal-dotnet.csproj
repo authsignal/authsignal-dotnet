@@ -18,6 +18,7 @@
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>embedded</DebugType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>https://github.com/authsignal/authsignal-dotnet/releases/tag/v3.3.0</PackageReleaseNotes>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
