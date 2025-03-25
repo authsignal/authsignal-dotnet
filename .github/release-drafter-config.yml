@@ -59,9 +59,6 @@ autolabeler:
   - label: "enhancement"
     branch:
       - '/feature\/.+/'
-  - label: "dependencies"
-    files:
-      - "src/authsignal-dotnet.csproj"
 
 template: |
   ## Changes in Release v$RESOLVED_VERSION
