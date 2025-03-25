@@ -12,13 +12,13 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>Authsignal, MFA, 2FA, Authentication, Passwordless, Passkeys</PackageTags>
 		<RepositoryUrl>https://github.com/authsignal/authsignal-dotnet</RepositoryUrl>
-		<Version>3.3.1</Version>
+		<Version>3.3.2</Version>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>embedded</DebugType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>https://github.com/authsignal/authsignal-dotnet/releases/tag/v3.3.1</PackageReleaseNotes>
+        <PackageReleaseNotes>https://github.com/authsignal/authsignal-dotnet/releases/tag/v3.3.2</PackageReleaseNotes>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
