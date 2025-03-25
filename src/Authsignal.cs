@@ -40,7 +40,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
-        var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", version);
 
@@ -71,7 +71,7 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
-        var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+        var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", version);
 
