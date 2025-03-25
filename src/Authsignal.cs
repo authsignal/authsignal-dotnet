@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -39,6 +40,10 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
+        var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+
+        _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", version);
+
         _retries = retries ?? DEFAULT_RETRIES;
 
         _webhook = new Webhook(apiSecretKey);
@@ -65,6 +70,10 @@ public class AuthsignalClient : IAuthsignalClient
         };
 
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
+
+        var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+
+        _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", version);
 
         _retries = retries ?? DEFAULT_RETRIES;
 
