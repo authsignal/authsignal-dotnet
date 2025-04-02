@@ -19,7 +19,7 @@ public class AuthsignalClient : IAuthsignalClient
 
     public Webhook Webhook { get => _webhook; }
 
-    private static readonly string _version = "3.3.2";
+    private static readonly string _version = "3.4.0";
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string apiSecretKey, string? apiUrl = null, int? retries = null)
     {
@@ -43,6 +43,8 @@ public class AuthsignalClient : IAuthsignalClient
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", _version);
+
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "authsignal-dotnet");
 
         _retries = retries ?? DEFAULT_RETRIES;
 
