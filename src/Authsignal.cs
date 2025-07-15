@@ -1,5 +1,4 @@
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -199,6 +198,149 @@ public class AuthsignalClient : IAuthsignalClient
         return JsonSerializer.Deserialize<ActionAttributes>(content, _serializeOptions)!;
     }
 
+    public async Task<ChallengeResponse> Challenge(ChallengeRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "challenge")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<ChallengeResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<VerifyResponse> Verify(VerifyRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "verify")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<VerifyResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<ClaimChallengeResponse> ClaimChallenge(ClaimChallengeRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "claim")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<ClaimChallengeResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<GetChallengeResponse> GetChallenge(GetChallengeRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "challenges")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json"),
+            QueryParams = []
+        };
+
+        if (request.ChallengeId != null)
+        {
+            httpRequest.QueryParams.Add("challengeId", request.ChallengeId);
+        }
+
+        if (request.UserId != null)
+        {
+            httpRequest.QueryParams.Add("userId", request.UserId);
+        }
+
+        if (request.Action != null)
+        {
+            httpRequest.QueryParams.Add("action", request.Action);
+        }
+
+        if (request.VerificationMethod != null)
+        {
+            httpRequest.QueryParams.Add("verificationMethod", request.VerificationMethod);
+        }
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<GetChallengeResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<CreateSessionResponse> CreateSession(CreateSessionRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<CreateSessionResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<ValidateSessionResponse> ValidateSession(ValidateSessionRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/validate")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<ValidateSessionResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<RefreshSessionResponse> RefreshSession(RefreshSessionRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/refresh")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<RefreshSessionResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task RevokeSession(RevokeSessionRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/revoke")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+
+    public async Task RevokeUserSessions(RevokeUserSessionsRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/revoke")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+
     private async Task<HttpResponseMessage> SendHttpRequest(AuthsignalHttpRequest request, CancellationToken cancellationToken)
     {
         Exception? requestException;
@@ -298,6 +440,20 @@ public class AuthsignalClient : IAuthsignalClient
         if (request.Content != null)
         {
             httpRequestMessage.Content = request.Content;
+        }
+
+        if (request.QueryParams != null && request.QueryParams.Count > 0)
+        {
+            var uriBuilder = new UriBuilder(httpRequestMessage.RequestUri!);
+            var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
+
+            foreach (var kvp in request.QueryParams)
+            {
+                query[kvp.Key] = kvp.Value;
+            }
+
+            uriBuilder.Query = query.ToString();
+            httpRequestMessage.RequestUri = uriBuilder.Uri;
         }
 
         return httpRequestMessage;
