@@ -1,5 +1,3 @@
-
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Authsignal;
@@ -7,7 +5,8 @@ namespace Authsignal;
 public record class AuthsignalHttpRequest(
     HttpMethod HttpMethod,
     string Path,
-    HttpContent? Content = null
+    HttpContent? Content = null,
+    Dictionary<string, string>? QueryParams = null
 );
 
 public record class GetUserRequest(
@@ -148,6 +147,103 @@ public record class DeleteAuthenticatorRequest(
     string UserAuthenticatorId
 );
 
+public record class ChallengeRequest(
+    VerificationMethod VerificationMethod,
+    string Action,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? SmsChannel = null
+);
+
+public record class ChallengeResponse(
+    string ChallengeId
+);
+
+public record class VerifyRequest(
+    string ChallengeId,
+    string VerificationCode
+);
+
+public record class VerifyResponse(
+    bool IsVerified,
+    string? Email = null,
+    string? PhoneNumber = null,
+    VerificationMethod? VerificationMethod = null
+);
+
+public record class ClaimChallengeRequest(
+    string ChallengeId,
+    string UserId
+);
+
+public record class ClaimChallengeResponse(
+    string Token,
+    VerificationMethod VerificationMethod
+);
+
+public record class GetChallengeRequest(
+    string? ChallengeId = null,
+    string? UserId = null,
+    string? Action = null,
+    string? VerificationMethod = null
+);
+
+public record class GetChallengeResponse(
+    string? ChallengeId = null,
+    int? ExpiresAt = null,
+    VerificationMethod? VerificationMethod = null,
+    SmsChannel? SmsChannel = null,
+    string? PhoneNumber = null,
+    string? Email = null,
+    string? Action = null
+);
+
+public record class CreateSessionRequest(
+    string ClientId,
+    string Token
+);
+
+public record class CreateSessionResponse(
+    string AccessToken,
+    string RefreshToken
+);
+
+public record class ValidateSessionRequest(
+    string AccessToken,
+    string[]? ClientIds = null
+);
+
+public record class ValidateSessionResponse(
+    ValidateSessionUser User,
+    int ExpiresAt
+);
+
+public record class RefreshSessionRequest(
+    string RefreshToken
+);
+
+public record class RefreshSessionResponse(
+    string AccessToken,
+    string RefreshToken
+);
+
+public record class RevokeSessionRequest(
+    string AccessToken
+);
+
+public record class RevokeUserSessionsRequest(
+    string UserId
+);
+
+public record class ValidateSessionUser(
+    string UserId,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null,
+    string? DisplayName = null,
+    Dictionary<string, string>? Custom = null
+);
+
 public record class UserAuthenticator(
     string UserId,
     string UserAuthenticatorId,
@@ -207,6 +303,13 @@ public enum VerificationMethod
     IPROOV,
     IDVERSE,
     RECOVERY_CODE,
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SmsChannel
+{
+    DEFAULT,
+    WHATSAPP,
 }
 
 public record class AuthsignalErrorResponse(
