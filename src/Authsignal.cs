@@ -331,7 +331,7 @@ public class AuthsignalClient : IAuthsignalClient
 
     public async Task RevokeUserSessions(RevokeUserSessionsRequest request, CancellationToken cancellationToken = default)
     {
-        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/revoke")
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "sessions/user/revoke")
         {
             Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
         };
