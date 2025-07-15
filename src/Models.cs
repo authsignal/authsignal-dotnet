@@ -177,8 +177,8 @@ public record class ClaimChallengeRequest(
 );
 
 public record class ClaimChallengeResponse(
-    string ChallengeId,
-    string UserId
+    string Token,
+    VerificationMethod VerificationMethod
 );
 
 public record class GetChallengeRequest(
