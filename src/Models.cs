@@ -303,6 +303,7 @@ public enum VerificationMethod
     IPROOV,
     IDVERSE,
     RECOVERY_CODE,
+    DEVICE
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
