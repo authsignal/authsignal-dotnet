@@ -23,4 +23,23 @@ public interface IAuthsignalClient
     Task<GetActionResponse> GetAction(GetActionRequest request, CancellationToken cancellationToken = default);
 
     Task<ActionAttributes> UpdateAction(UpdateActionRequest request, CancellationToken cancellationToken = default);
+
+    Task<ChallengeResponse> Challenge(ChallengeRequest request, CancellationToken cancellationToken = default);
+
+    Task<VerifyResponse> Verify(VerifyRequest request, CancellationToken cancellationToken = default);
+
+    Task<ClaimChallengeResponse> ClaimChallenge(ClaimChallengeRequest request, CancellationToken cancellationToken = default);
+
+    Task<GetChallengeResponse> GetChallenge(GetChallengeRequest request, CancellationToken cancellationToken = default);
+
+    Task<CreateSessionResponse> CreateSession(CreateSessionRequest request, CancellationToken cancellationToken = default);
+
+    Task<ValidateSessionResponse> ValidateSession(ValidateSessionRequest request, CancellationToken cancellationToken = default);
+
+    Task<RefreshSessionResponse> RefreshSession(RefreshSessionRequest request, CancellationToken cancellationToken = default);
+
+    Task RevokeSession(RevokeSessionRequest request, CancellationToken cancellationToken = default);
+
+    Task RevokeUserSessions(RevokeUserSessionsRequest request, CancellationToken cancellationToken = default);
+
 }
