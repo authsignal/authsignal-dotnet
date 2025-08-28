@@ -156,7 +156,8 @@ public record class ChallengeRequest(
 );
 
 public record class ChallengeResponse(
-    string ChallengeId
+    string ChallengeId,
+    int ExpiresAt
 );
 
 public record class VerifyRequest(
