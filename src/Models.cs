@@ -304,7 +304,8 @@ public enum VerificationMethod
     IPROOV,
     IDVERSE,
     RECOVERY_CODE,
-    DEVICE
+    DEVICE,
+    WHATSAPP
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
