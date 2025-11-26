@@ -193,11 +193,14 @@ public record class ChallengeRequest(
     string Action,
     string? Email = null,
     string? PhoneNumber = null,
-    string? SmsChannel = null
+    string? SmsChannel = null,
+    string? Locale = null,
+    string? IdempotencyKey = null
 );
 
 public record class ChallengeResponse(
     string ChallengeId,
+    string IdempotencyKey,
     int ExpiresAt
 );
 
@@ -215,7 +218,8 @@ public record class VerifyResponse(
 
 public record class ClaimChallengeRequest(
     string ChallengeId,
-    string UserId
+    string UserId,
+    bool? SkipVerificationCheck = false
 );
 
 public record class ClaimChallengeResponse(
