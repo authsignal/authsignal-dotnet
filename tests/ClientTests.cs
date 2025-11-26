@@ -28,7 +28,7 @@ public class ClientTests : TestBase
         var phoneNumber = "+6427123456";
         var username = email;
         var displayName = "Test User";
-        var custom = new Dictionary<string, string> { { "foo", "bar" } };
+        var custom = new Dictionary<string, object> { { "foo", "bar" }, { "baz", true }, { "qux", 123 } };
 
         var updateUserRequest = new UpdateUserRequest(
             UserId: userId,
@@ -46,6 +46,8 @@ public class ClientTests : TestBase
         Assert.Equal(username, updatedAttributes.Username);
         Assert.Equal(displayName, updatedAttributes.DisplayName);
         Assert.Equal("bar", custom["foo"]);
+        Assert.Equal(true, custom["baz"]);
+        Assert.Equal(123, custom["qux"]);
 
         var deleteUserRequest = new DeleteUserRequest(UserId: userId);
 
