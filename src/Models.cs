@@ -22,7 +22,30 @@ public record class GetUserResponse(
     VerificationMethod[]? EnrolledVerificationMethods = null,
     VerificationMethod[]? AllowedVerificationMethods = null,
     VerificationMethod? DefaultVerificationMethod = null,
-    Dictionary<string, string>? Custom = null
+    Dictionary<string, object>? Custom = null
+);
+
+public record class QueryUsersRequest(
+    string? Username = null,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Token = null,
+    int? Limit = null,
+    string? LastEvaluatedUserId = null
+);
+
+public record class QueryUsersResponse(
+    QueryUserAttributes[] Users,
+    string? LastEvaluatedUserId = null
+);
+
+public record class QueryUserAttributes(
+    string UserId,
+    bool EmailVerified,
+    bool PhoneNumberVerified,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? Username = null
 );
 
 public record class UpdateUserRequest(
@@ -35,11 +58,29 @@ public record class UserAttributes(
     string? PhoneNumber = null,
     string? Username = null,
     string? DisplayName = null,
-    Dictionary<string, string>? Custom = null
+    Dictionary<string, object>? Custom = null
 );
 
 public record class DeleteUserRequest(
     string UserId
+);
+
+public record class QueryUserActionsRequest(
+    string UserId,
+    string? FromDate = null,
+    string[]? ActionCodes = null,
+    UserActionState? State = null
+);
+
+public record class QueryUserActionsResponse(
+    string ActionCode,
+    string IdempotencyKey,
+    UserActionState State,
+    string CreatedAt,
+    string? UpdatedAt = null,
+    string? StateUpdatedAt = null,
+    VerificationMethod? VerificationMethod = null,
+    string? VerifiedByAuthenticatorId = null
 );
 
 public record class TrackRequest(
@@ -58,7 +99,7 @@ public record class TrackAttributes(
     string? UserAgent = null,
     string? DeviceId = null,
     string? Scope = null,
-    Dictionary<string, string>? Custom = null,
+    Dictionary<string, object>? Custom = null,
     bool? RedirectToSettings = false,
     string? ChallengeId = null
 );
@@ -242,7 +283,7 @@ public record class ValidateSessionUser(
     string? PhoneNumber = null,
     string? Username = null,
     string? DisplayName = null,
-    Dictionary<string, string>? Custom = null
+    Dictionary<string, object>? Custom = null
 );
 
 public record class UserAuthenticator(

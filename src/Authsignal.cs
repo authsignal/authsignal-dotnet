@@ -18,7 +18,7 @@ public class AuthsignalClient : IAuthsignalClient
 
     public Webhook Webhook { get => _webhook; }
 
-    private static readonly string _version = "3.7.1";
+    private static readonly string _version = "4.0.0";
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string apiSecretKey, string? apiUrl = null, int? retries = null)
     {
@@ -88,6 +88,55 @@ public class AuthsignalClient : IAuthsignalClient
         var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         return JsonSerializer.Deserialize<GetUserResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<QueryUsersResponse> QueryUsers(QueryUsersRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Get, "users")
+        {
+            QueryParams = []
+        };
+
+        if (request.Username != null)
+        {
+            httpRequest.QueryParams.Add("username", request.Username);
+        }
+
+        if (request.Email != null)
+        {
+            httpRequest.QueryParams.Add("email", request.Email);
+        }
+
+        if (request.PhoneNumber != null)
+        {
+            httpRequest.QueryParams.Add("phoneNumber", request.PhoneNumber);
+        }
+
+        if (request.Token != null)
+        {
+            httpRequest.QueryParams.Add("token", request.Token);
+        }
+
+        if (request.Limit != null)
+        {
+            var limit = request.Limit.ToString();
+
+            if (limit != null)
+            {
+                httpRequest.QueryParams.Add("limit", limit);
+            }
+        }
+
+        if (request.LastEvaluatedUserId != null)
+        {
+            httpRequest.QueryParams.Add("lastEvaluatedUserId", request.LastEvaluatedUserId);
+        }
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<QueryUsersResponse>(content, _serializeOptions)!;
     }
 
     public async Task<UserAttributes> UpdateUser(UpdateUserRequest request, CancellationToken cancellationToken = default)
@@ -182,6 +231,40 @@ public class AuthsignalClient : IAuthsignalClient
         var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         return JsonSerializer.Deserialize<GetActionResponse>(content, _serializeOptions)!;
+    }
+
+    public async Task<QueryUserActionsResponse[]> QueryUserActions(QueryUserActionsRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Get, $"users/{request.UserId}/actions")
+        {
+            QueryParams = []
+        };
+
+        if (request.FromDate != null)
+        {
+            httpRequest.QueryParams.Add("fromDate", request.FromDate);
+        }
+
+        if (request.ActionCodes != null && request.ActionCodes.Length > 0)
+        {
+            httpRequest.QueryParams.Add("codes", string.Join(",", request.ActionCodes));
+        }
+
+        if (request.State != null)
+        {
+            var state = request.State.ToString();
+
+            if (state != null)
+            {
+                httpRequest.QueryParams.Add("state", state);
+            }
+        }
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<QueryUserActionsResponse[]>(content, _serializeOptions)!;
     }
 
     public async Task<ActionAttributes> UpdateAction(UpdateActionRequest request, CancellationToken cancellationToken = default)
