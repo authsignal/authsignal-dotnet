@@ -102,6 +102,8 @@ public record class TrackAttributes(
     Dictionary<string, object>? Custom = null,
     bool? RedirectToSettings = false,
     string? ChallengeId = null
+    string? Locale = null
+    string? CustomDomain = null
 );
 
 public record class TrackResponse(
@@ -112,7 +114,8 @@ public record class TrackResponse(
     bool IsEnrolled,
     VerificationMethod[]? EnrolledVerificationMethods = null,
     VerificationMethod[]? AllowedVerificationMethods = null,
-    VerificationMethod? DefaultVerificationMethod = null
+    VerificationMethod? DefaultVerificationMethod = null,
+    string[]? RuleIds = null
 );
 
 public record class GetActionRequest(
