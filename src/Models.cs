@@ -101,8 +101,8 @@ public record class TrackAttributes(
     string? Scope = null,
     Dictionary<string, object>? Custom = null,
     bool? RedirectToSettings = false,
-    string? ChallengeId = null
-    string? Locale = null
+    string? ChallengeId = null,
+    string? Locale = null,
     string? CustomDomain = null
 );
 

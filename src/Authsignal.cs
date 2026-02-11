@@ -18,7 +18,7 @@ public class AuthsignalClient : IAuthsignalClient
 
     public Webhook Webhook { get => _webhook; }
 
-    private static readonly string _version = "4.0.0";
+    private static readonly string _version = "4.1.0";
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string apiSecretKey, string? apiUrl = null, int? retries = null)
     {
