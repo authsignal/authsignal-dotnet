@@ -185,6 +185,20 @@ public class AuthsignalClient : IAuthsignalClient
         return JsonSerializer.Deserialize<EnrollVerifiedAuthenticatorResponse>(content, _serializeOptions)!;
     }
 
+    public async Task<BatchEnrollVerifiedAuthenticatorsResponse> BatchEnrollVerifiedAuthenticators(BatchEnrollVerifiedAuthenticatorsRequest request, CancellationToken cancellationToken = default)
+    {
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "users/authenticators")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<BatchEnrollVerifiedAuthenticatorsResponse>(content, _serializeOptions)!;
+    }
+
     public async Task DeleteAuthenticator(DeleteAuthenticatorRequest request, CancellationToken cancellationToken = default)
     {
         var httpRequest = new AuthsignalHttpRequest(HttpMethod.Delete, $"users/{request.UserId}/authenticators/{request.UserAuthenticatorId}");

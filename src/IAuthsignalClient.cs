@@ -14,6 +14,8 @@ public interface IAuthsignalClient
 
     Task<EnrollVerifiedAuthenticatorResponse> EnrollVerifiedAuthenticator(EnrollVerifiedAuthenticatorRequest request, CancellationToken cancellationToken = default);
 
+    Task<BatchEnrollVerifiedAuthenticatorsResponse> BatchEnrollVerifiedAuthenticators(BatchEnrollVerifiedAuthenticatorsRequest request, CancellationToken cancellationToken = default);
+
     Task DeleteAuthenticator(DeleteAuthenticatorRequest request, CancellationToken cancellationToken = default);
 
     Task<TrackResponse> Track(TrackRequest request, CancellationToken cancellationToken = default);
