@@ -186,6 +186,34 @@ public record class EnrollVerifiedAuthenticatorResponse(
     List<string> RecoveryCodes
 );
 
+public record class BatchEnrollVerifiedAuthenticatorsRequest(
+    BatchEnrollAuthenticatorItem[] Authenticators
+);
+
+public record class BatchEnrollAuthenticatorItem(
+    string UserId,
+    VerificationMethod VerificationMethod,
+    string CredentialId,
+    string CredentialPublicKey,
+    string? Name = null,
+    string[]? Transports = null,
+    string? Aaguid = null
+);
+
+public record class BatchEnrollVerifiedAuthenticatorsResponse(
+    int Total,
+    int Succeeded,
+    int Failed,
+    BatchEnrollFailure[] Failures
+);
+
+public record class BatchEnrollFailure(
+    string UserId,
+    string CredentialId,
+    string ErrorCode,
+    string ErrorDescription
+);
+
 public record class DeleteAuthenticatorRequest(
     string UserId,
     string UserAuthenticatorId
