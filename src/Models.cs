@@ -163,7 +163,8 @@ public record class ValidateChallengeResponse(
     string? UserId,
     [property: JsonPropertyName("actionCode")] string? Action,
     string? IdempotencyKey,
-    VerificationMethod? VerificationMethod
+    VerificationMethod? VerificationMethod,
+    string? VeriffSessionId = null
 );
 
 public record class GetAuthenticatorsRequest(
