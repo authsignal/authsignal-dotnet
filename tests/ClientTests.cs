@@ -11,7 +11,7 @@ public class ClientTests : TestBase
             UserId: userId,
             Attributes: new(
                 VerificationMethod: VerificationMethod.SMS,
-                PhoneNumber: "+6427000000"));
+                PhoneNumber: "+64270000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
@@ -67,7 +67,7 @@ public class ClientTests : TestBase
             UserId: userId,
             Attributes: new(
                 VerificationMethod: VerificationMethod.SMS,
-                PhoneNumber: "+6427000000"));
+                PhoneNumber: "+64270000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
@@ -106,7 +106,7 @@ public class ClientTests : TestBase
            UserId: userId,
            Attributes: new(
                VerificationMethod: VerificationMethod.SMS,
-               PhoneNumber: "+6427000000"));
+               PhoneNumber: "+64270000000"));
 
         var enrollResponse = await AuthsignalClient.EnrollVerifiedAuthenticator(enrollRequest);
 
