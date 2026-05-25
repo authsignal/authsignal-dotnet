@@ -26,12 +26,17 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Check tag matches csproj version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          csproj_version=$(grep -oP '(?<=<Version>)[^<]+' src/authsignal-dotnet.csproj)
+          csproj_version=$(sed -nE 's/.*<Version>[[:space:]]*([^<[:space:]]+)[[:space:]]*<\/Version>.*/\1/p' src/authsignal-dotnet.csproj | head -n1)
           if [ "${{ github.event_name }}" = "release" ]; then
-            expected="${GITHUB_REF_NAME#v}"
+            case "$GITHUB_REF_NAME" in
+              v*) expected="${GITHUB_REF_NAME#v}" ;;
+              *) echo "::error::release tag ($GITHUB_REF_NAME) must start with 'v'"; exit 1 ;;
+            esac
           else
-            expected="${{ github.event.inputs.version }}"
+            expected="$INPUT_VERSION"
           fi
           echo "csproj: $csproj_version"
           echo "expected: $expected"
@@ -50,4 +55,4 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      - run: dotnet nuget push "out/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - run: dotnet nuget push "out/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
