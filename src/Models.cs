@@ -179,7 +179,8 @@ public record class EnrollVerifiedAuthenticatorRequest(
 public record class EnrollVerifiedAuthenticatorAttributes(
    VerificationMethod VerificationMethod,
     string? PhoneNumber = null,
-    string? Email = null
+    string? Email = null,
+    string? Username = null
 );
 
 public record class EnrollVerifiedAuthenticatorResponse(
@@ -197,6 +198,7 @@ public record class BatchEnrollAuthenticatorItem(
     string CredentialId,
     string CredentialPublicKey,
     string? Name = null,
+    string? Username = null,
     string[]? Transports = null,
     string? Aaguid = null
 );
