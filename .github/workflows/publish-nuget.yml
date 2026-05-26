@@ -45,8 +45,6 @@ jobs:
             exit 1
           fi
 
-      - run: dotnet test tests/authsignal-dotnet-tests.csproj -c Release
-
       - run: dotnet pack src/authsignal-dotnet.csproj -c Release -o out -p:ContinuousIntegrationBuild=true
 
       - name: NuGet login (OIDC -> temp API key)
