@@ -1,0 +1,58 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Expected csproj version (e.g. 4.5.0). Required for manual runs."
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Check tag matches csproj version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          csproj_version=$(sed -nE 's/.*<Version>[[:space:]]*([^<[:space:]]+)[[:space:]]*<\/Version>.*/\1/p' src/authsignal-dotnet.csproj | head -n1)
+          if [ "${{ github.event_name }}" = "release" ]; then
+            case "$GITHUB_REF_NAME" in
+              v*) expected="${GITHUB_REF_NAME#v}" ;;
+              *) echo "::error::release tag ($GITHUB_REF_NAME) must start with 'v'"; exit 1 ;;
+            esac
+          else
+            expected="$INPUT_VERSION"
+          fi
+          echo "csproj: $csproj_version"
+          echo "expected: $expected"
+          if [ "$csproj_version" != "$expected" ]; then
+            echo "::error::csproj <Version> ($csproj_version) does not match expected version ($expected)"
+            exit 1
+          fi
+
+      - run: dotnet test tests/authsignal-dotnet-tests.csproj -c Release
+
+      - run: dotnet pack src/authsignal-dotnet.csproj -c Release -o out -p:ContinuousIntegrationBuild=true
+
+      - name: NuGet login (OIDC -> temp API key)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - run: dotnet nuget push "out/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
