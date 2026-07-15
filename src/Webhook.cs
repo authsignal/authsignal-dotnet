@@ -21,6 +21,73 @@ namespace Authsignal
 
         public WebhookEvent ConstructEvent(string payload, string signature, int tolerance = DEFAULT_TOLERANCE)
         {
+            VerifySignature(payload, signature, tolerance);
+
+            if (IsLogEventBatch(payload))
+            {
+                throw new InvalidPayloadException("Payload is a batch of log events. Use ConstructLogEventBatch instead.");
+            }
+
+            var webhookEvent = DeserializePayload<WebhookEvent>(payload);
+
+            ValidateEvent(webhookEvent, expectsRecord: false);
+
+            return webhookEvent;
+        }
+
+        public WebhookEventBatch ConstructLogEventBatch(string payload, string signature, int tolerance = DEFAULT_TOLERANCE)
+        {
+            VerifySignature(payload, signature, tolerance);
+
+            var batch = DeserializePayload<WebhookEventBatch>(payload);
+
+            if (batch.Records == null)
+            {
+                throw new InvalidPayloadException("Payload format is invalid. Expected a 'records' array.");
+            }
+
+            foreach (var webhookEvent in batch.Records)
+            {
+                ValidateEvent(webhookEvent, expectsRecord: true);
+            }
+
+            return batch;
+        }
+
+        private static void ValidateEvent(WebhookEvent webhookEvent, bool expectsRecord)
+        {
+            if (webhookEvent.Version <= 0)
+            {
+                throw new InvalidPayloadException("Payload is missing required field 'version'.");
+            }
+
+            RequireField(webhookEvent.Type, "type");
+            RequireField(webhookEvent.Id, "id");
+            RequireField(webhookEvent.Source, "source");
+            RequireField(webhookEvent.Time, "time");
+            RequireField(webhookEvent.TenantId, "tenantId");
+
+            if (expectsRecord && webhookEvent.Record == null)
+            {
+                throw new InvalidPayloadException("Payload is missing required field 'record'.");
+            }
+
+            if (!expectsRecord && webhookEvent.Data == null)
+            {
+                throw new InvalidPayloadException("Payload is missing required field 'data'.");
+            }
+        }
+
+        private static void RequireField(string? value, string name)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new InvalidPayloadException($"Payload is missing required field '{name}'.");
+            }
+        }
+
+        private void VerifySignature(string payload, string signature, int tolerance)
+        {
             var parsedSignature = ParseSignature(signature);
 
             long secondsSinceEpoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -40,15 +107,41 @@ namespace Authsignal
             {
                 throw new InvalidSignatureException("Signature mismatch.");
             }
+        }
 
-            WebhookEvent? webhookEvent = JsonSerializer.Deserialize<WebhookEvent>(payload, serializerOptions);
-
-            if (webhookEvent == null)
+        private T DeserializePayload<T>(string payload) where T : class
+        {
+            try
             {
-                throw new InvalidSignatureException("Payload format is invalid.");
-            }
+                var result = JsonSerializer.Deserialize<T>(payload, serializerOptions);
 
-            return webhookEvent;
+                if (result == null)
+                {
+                    throw new InvalidPayloadException("Payload format is invalid.");
+                }
+
+                return result;
+            }
+            catch (JsonException exception)
+            {
+                throw new InvalidPayloadException("Payload format is invalid.", exception);
+            }
+        }
+
+        private static bool IsLogEventBatch(string payload)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(payload);
+
+                return document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty("records", out var records)
+                    && records.ValueKind == JsonValueKind.Array;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
 
         private SignatureHeaderData ParseSignature(string value)
@@ -120,5 +213,12 @@ namespace Authsignal
         }
 
         public class InvalidSignatureException(string message) : Exception(message) { }
+
+        public class InvalidPayloadException : Exception
+        {
+            public InvalidPayloadException(string message) : base(message) { }
+
+            public InvalidPayloadException(string message, Exception innerException) : base(message, innerException) { }
+        }
     }
 }

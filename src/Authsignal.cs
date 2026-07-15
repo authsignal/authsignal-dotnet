@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +19,9 @@ public class AuthsignalClient : IAuthsignalClient
 
     public Webhook Webhook { get => _webhook; }
 
-    private static readonly string _version = "4.1.0";
+    private static readonly string _version = typeof(AuthsignalClient).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion.Split('+')[0] ?? "unknown";
 
     internal AuthsignalClient(IHttpClientFactory httpClientFactory, string apiSecretKey, string? apiUrl = null, int? retries = null)
     {
