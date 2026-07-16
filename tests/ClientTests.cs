@@ -2,7 +2,7 @@
 
 public class ClientTests : TestBase
 {
-    [Fact]
+    [IntegrationFact]
     public async Task TestUser()
     {
         var userId = Guid.NewGuid().ToString();
@@ -58,7 +58,7 @@ public class ClientTests : TestBase
         Assert.False(deletedUserResponse.IsEnrolled);
     }
 
-    [Fact]
+    [IntegrationFact]
     public async Task TestAuthenticator()
     {
         var userId = Guid.NewGuid().ToString();
@@ -96,7 +96,7 @@ public class ClientTests : TestBase
         Assert.Empty(emptyAuthenticatorsResponse);
     }
 
-    [Fact]
+    [IntegrationFact]
     public async Task TestAction()
     {
         var userId = Guid.NewGuid().ToString();
@@ -152,30 +152,25 @@ public class ClientTests : TestBase
         Assert.Equal(UserActionState.REVIEW_REQUIRED, actionResponse.State);
     }
 
-    [Fact]
+    [IntegrationFact]
     public async Task TestInvalidSecretError()
     {
-        var baseUrl = Configuration["BaseUrl"]!;
+        var apiUrl = Configuration["ApiUrl"]!;
 
         var secret = "invalid_secret";
 
-        var client = new AuthsignalClient(secret, baseUrl);
+        var client = new AuthsignalClient(secret, apiUrl);
 
         var userRequest = new GetUserRequest(UserId: Guid.NewGuid().ToString());
 
-        try
-        {
-            var userResponse = await client.GetUser(userRequest);
-        }
-        catch (AuthsignalException e)
-        {
-            Assert.Equal(401, e.StatusCode);
-            Assert.Equal("unauthorized", e.Error);
-            Assert.Equal("The request is unauthorized. Check that your API key and region base URL are correctly configured.", e.ErrorDescription);
-        }
+        var exception = await Assert.ThrowsAsync<AuthsignalException>(() => client.GetUser(userRequest));
+
+        Assert.Equal(401, exception.StatusCode);
+        Assert.Equal("unauthorized", exception.Error);
+        Assert.Equal("The request is unauthorized. Check that your API key and region base URL are correctly configured.", exception.ErrorDescription);
     }
 
-    [Fact]
+    [IntegrationFact]
     public async Task TestPasskeyAuthenticator()
     {
         var userId = "b60429a1-6288-43dc-80c0-6a3e73dd51b9";

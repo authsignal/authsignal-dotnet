@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Authsignal;
@@ -441,5 +442,10 @@ public record class WebhookEvent(
     string Source,
     string Time,
     string TenantId,
-    Dictionary<string, string>? Data
+    Dictionary<string, JsonElement>? Data = null,
+    Dictionary<string, JsonElement>? Record = null
+);
+
+public record class WebhookEventBatch(
+    List<WebhookEvent> Records
 );
