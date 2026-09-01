@@ -10,7 +10,10 @@ public class AuthsignalClient : IAuthsignalClient
 {
     internal const string DEFAULT_API_URL = "https://api.authsignal.com/v1/";
     internal const int DEFAULT_RETRIES = 2;
+    internal static readonly TimeSpan DEFAULT_TIMEOUT = TimeSpan.FromSeconds(10);
     internal string[] SAFE_HTTP_METHODS = ["GET", "HEAD", "OPTIONS"];
+    private static readonly Random _random = new();
+    private static readonly object _randomLock = new();
 
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _serializeOptions;
@@ -35,6 +38,7 @@ public class AuthsignalClient : IAuthsignalClient
         _httpClient = httpClientFactory.CreateClient(nameof(AuthsignalClient));
 
         _httpClient.BaseAddress = new Uri(baseAddress);
+        _httpClient.Timeout = DEFAULT_TIMEOUT;
 
         _serializeOptions = new JsonSerializerOptions
         {
@@ -64,7 +68,8 @@ public class AuthsignalClient : IAuthsignalClient
 
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(baseAddress)
+            BaseAddress = new Uri(baseAddress),
+            Timeout = DEFAULT_TIMEOUT
         };
 
         _serializeOptions = new JsonSerializerOptions
@@ -215,7 +220,8 @@ public class AuthsignalClient : IAuthsignalClient
 
         var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, $"users/{request.UserId}/actions/{request.Action}")
         {
-            Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json"),
+            IsIdempotent = !string.IsNullOrEmpty(body.IdempotencyKey)
         };
 
         using var response = await SendHttpRequest(httpRequest, cancellationToken);
@@ -288,7 +294,8 @@ public class AuthsignalClient : IAuthsignalClient
     {
         var httpRequest = new AuthsignalHttpRequest(new HttpMethod("PATCH"), $"users/{request.UserId}/actions/{request.Action}/{request.IdempotencyKey}")
         {
-            Content = new StringContent(JsonSerializer.Serialize(request.Attributes, _serializeOptions), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(request.Attributes, _serializeOptions), Encoding.UTF8, "application/json"),
+            IsIdempotent = true
         };
 
         using var response = await SendHttpRequest(httpRequest, cancellationToken);
@@ -302,7 +309,8 @@ public class AuthsignalClient : IAuthsignalClient
     {
         var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "challenge")
         {
-            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json"),
+            IsIdempotent = !string.IsNullOrEmpty(request.IdempotencyKey)
         };
 
         using var response = await SendHttpRequest(httpRequest, cancellationToken);
@@ -467,14 +475,17 @@ public class AuthsignalClient : IAuthsignalClient
                 requestException = exception;
             }
 
-            if (!ShouldRetry(retryCount, requestException, response?.StatusCode, httpRequestMessage.Method))
+            if (!ShouldRetry(retryCount, requestException, response, httpRequestMessage.Method, request.IsIdempotent))
             {
                 break;
             }
 
             retryCount++;
+            var retryDelay = SleepTime(retryCount, response);
+            response?.Dispose();
+            response = null;
 
-            await Task.Delay(SleepTime(retryCount)).ConfigureAwait(false);
+            await Task.Delay(retryDelay, cancellationToken).ConfigureAwait(false);
         }
 
 
@@ -499,36 +510,53 @@ public class AuthsignalClient : IAuthsignalClient
     private bool ShouldRetry(
             int retryCount,
             Exception? requestException,
-            HttpStatusCode? statusCode,
-            HttpMethod? httpMethod)
+            HttpResponseMessage? response,
+            HttpMethod? httpMethod,
+            bool isIdempotent)
     {
         if (retryCount >= _retries)
         {
             return false;
         }
 
-        // Retry on connection error
+        if (!isIdempotent && (httpMethod == null || !SAFE_HTTP_METHODS.Any(m => m == httpMethod.Method)))
+        {
+            return false;
+        }
+
+        // Retry on connection error or SDK timeout.
         if (requestException != null)
         {
             return true;
         }
 
-        if (statusCode.HasValue && ((int)statusCode.Value >= 500))
-        {
-            if (httpMethod != null && SAFE_HTTP_METHODS.Any(m => m == httpMethod.Method))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var statusCode = response?.StatusCode;
+        return (int?)statusCode == 429 ||
+            (statusCode.HasValue && (int)statusCode.Value >= 500 && (int)statusCode.Value <= 599);
     }
 
-    private static TimeSpan SleepTime(int retryCount)
+    private static TimeSpan SleepTime(int retryCount, HttpResponseMessage? response)
     {
         long interval = 100;
 
-        var delay = TimeSpan.FromMilliseconds((long)(interval * Math.Pow(2, retryCount - 1)));
+        var baseDelay = (long)(interval * Math.Pow(2, retryCount - 1));
+        int jitter;
+        lock (_randomLock)
+        {
+            jitter = _random.Next(0, Math.Max(1, (int)(baseDelay * 0.2)));
+        }
+        var delay = TimeSpan.FromMilliseconds(baseDelay + jitter);
+
+        if ((int?)response?.StatusCode == 429)
+        {
+            var retryAfter = response.Headers.RetryAfter;
+            var retryAfterDelay = retryAfter?.Delta ??
+                (retryAfter?.Date.HasValue == true ? retryAfter.Date.Value - DateTimeOffset.UtcNow : null);
+            if (retryAfterDelay.HasValue && retryAfterDelay.Value > delay)
+            {
+                delay = retryAfterDelay.Value;
+            }
+        }
 
         return delay;
     }

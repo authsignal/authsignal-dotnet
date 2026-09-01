@@ -7,7 +7,8 @@ public record class AuthsignalHttpRequest(
     HttpMethod HttpMethod,
     string Path,
     HttpContent? Content = null,
-    Dictionary<string, string>? QueryParams = null
+    Dictionary<string, string>? QueryParams = null,
+    bool IsIdempotent = false
 );
 
 public record class GetUserRequest(
