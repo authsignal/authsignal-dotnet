@@ -17,7 +17,6 @@ public class AuthsignalFlowsSms
             new { request.PhoneNumber }, request.ChallengeToken, cancellationToken);
     }
 
-    /// <exception cref="InvalidCodeException">The verification code did not match.</exception>
     public Task<OtpVerifyResponse> Verify(OtpVerifyRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(request.ChallengeToken))
