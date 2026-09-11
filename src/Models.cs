@@ -8,7 +8,10 @@ public record class AuthsignalHttpRequest(
     string Path,
     HttpContent? Content = null,
     Dictionary<string, string>? QueryParams = null
-);
+)
+{
+    internal string? ChallengeToken { get; init; }
+}
 
 public record class GetUserRequest(
     string UserId
@@ -385,7 +388,8 @@ public enum VerificationMethod
     IDVERSE,
     RECOVERY_CODE,
     DEVICE,
-    WHATSAPP
+    WHATSAPP,
+    PALM_BIOMETRICS_RR
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
