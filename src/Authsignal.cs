@@ -82,7 +82,6 @@ public class AuthsignalClient : IAuthsignalClient
         };
 
         _authorization = $"Basic {Base64Encode($"{apiSecretKey}:")}";
-        _httpClient.DefaultRequestHeaders.Remove("Authorization");
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", _version);
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "authsignal-dotnet");

@@ -37,7 +37,7 @@ public record class UserLookup(
 
 public record class FlowAction(
     FlowState State,
-    CompletedActionStep[] CompletedSteps,
+    CompletedActionStep[]? CompletedSteps = null,
     ActionStep? NextStep = null
 );
 
@@ -49,7 +49,7 @@ public record class ActionStep(
 public record class CompletedActionStep(
     ActionStepType StepType,
     VerificationMethod VerificationMethod,
-    string UserAuthenticatorId
+    string? UserAuthenticatorId = null
 );
 
 public record class ChallengeAttributes(

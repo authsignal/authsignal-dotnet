@@ -15,11 +15,9 @@ public class FlowsTests
         public string Response = "{}";
         public HttpStatusCode Status = HttpStatusCode.OK;
         public readonly List<(string Path, string Body, string? Auth, string? Token, HttpMethod Method)> Requests = new();
-        public bool Cancel;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (Cancel) await Task.Delay(Timeout.Infinite, cancellationToken);
             Assert.True(request.Headers.Contains("X-Authsignal-Version"));
             Requests.Add((request.RequestUri!.AbsolutePath, request.Content == null ? "" : await request.Content.ReadAsStringAsync(),
                 request.Headers.Authorization?.ToString(),
@@ -85,6 +83,8 @@ public class FlowsTests
         var handler = new Handler { Response = "{\"action\":{\"state\":\"CHALLENGE_REQUIRED\",\"completedSteps\":[],\"nextStep\":{\"stepType\":\"ENROLLMENT_REQUIRED\",\"verificationMethods\":" + methods + "}},\"challengeToken\":\"token\",\"challengeUrl\":\"url\"}" };
         using var services = Services(handler);
         var response = await services.GetRequiredService<IAuthsignalClient>().StartFlow(new("sign-in"));
+        Assert.Null(response.User);
+        Assert.Empty(response.Action.CompletedSteps!);
         Assert.Equal(ActionStepType.ENROLLMENT_REQUIRED, response.Action.NextStep!.StepType);
         using var expected = JsonDocument.Parse(methods);
         Assert.Equal(expected.RootElement.EnumerateArray().Select(m => m.GetString()), response.Action.NextStep.VerificationMethods.Select(m => m.ToString()));
@@ -97,9 +97,15 @@ public class FlowsTests
         using var services = Services(handler);
         var client = services.GetRequiredService<IAuthsignalClient>();
         var response = await client.VerifyFlow(new VerifyFlowRequest("sign-in", "rotated"));
-        Assert.Equal("r", response.Session!.RefreshToken);
-        Assert.Equal("auth", response.User!.Authenticators.Single().UserAuthenticatorId);
-        Assert.Equal(VerificationMethod.SMS, response.Action.CompletedSteps.Single().VerificationMethod);
+        Assert.Equal(new AuthenticationSession("a", "r"), response.Session);
+        Assert.Equal("user", response.User!.UserId);
+        Assert.Equal("a@example.test", response.User.Email);
+        Assert.Equal("+123", response.User.PhoneNumber);
+        Assert.Equal("name", response.User.Username);
+        Assert.Equal("Name", response.User.DisplayName);
+        Assert.Equal(new FlowUserAuthenticator("auth", VerificationMethod.SMS, PhoneNumber: "+123"), response.User.Authenticators.Single());
+        Assert.Equal(FlowState.CHALLENGE_SUCCEEDED, response.Action.State);
+        Assert.Equal(new CompletedActionStep(ActionStepType.VERIFICATION_REQUIRED, VerificationMethod.SMS, "auth"), response.Action.CompletedSteps!.Single());
         AssertRequest(handler, "flows/verify", "{\"actionCode\":\"sign-in\",\"challengeToken\":\"rotated\"}");
         handler.Response = "{\"action\":{\"state\":\"CHALLENGE_FAILED\",\"completedSteps\":[]}}";
         response = await client.VerifyFlow(new VerifyFlowRequest("sign-in", "rotated"));
@@ -110,8 +116,40 @@ public class FlowsTests
     private static Task<OtpChallengeResponse> Challenge(IAuthsignalClient c, string channel, string? value)
         => channel switch { "email-otp" => c.Email.Challenge(new("first", value)), "sms" => c.Sms.Challenge(new("first", value)), _ => c.Whatsapp.Challenge(new("first", value)) };
 
-    private static Task<OtpVerifyResponse> Verify(IAuthsignalClient c, string channel, CancellationToken token = default)
-        => channel switch { "email-otp" => c.Email.Verify(new("second", "001234"), token), "sms" => c.Sms.Verify(new("second", "001234"), token), _ => c.Whatsapp.Verify(new("second", "001234"), token) };
+    [Fact]
+    public async Task LiveResponsesCanOmitCompletedSteps()
+    {
+        var handler = new Handler { Response = """
+            {"action":{"state":"CHALLENGE_REQUIRED","nextStep":{"stepType":"ENROLLMENT_REQUIRED","verificationMethods":["EMAIL_OTP"]}},"challengeToken":"initial","challengeUrl":"https://example.test/challenge","user":{"userId":"user","authenticators":[]}}
+            """ };
+        using var services = Services(handler);
+        var client = services.GetRequiredService<IAuthsignalClient>();
+        var started = await client.StartFlow(new("signup-v2", User: new(UserId: "user")));
+        Assert.Null(started.Action.CompletedSteps);
+        Assert.Equal(ActionStepType.ENROLLMENT_REQUIRED, started.Action.NextStep!.StepType);
+
+        handler.Response = """
+            {"action":{"state":"CHALLENGE_SUCCEEDED"},"challengeToken":"rotated","user":{"userId":"user","authenticators":[{"userAuthenticatorId":"auth","verificationMethod":"EMAIL_OTP"}]}}
+            """;
+        var verified = await client.Email.Verify(new(started.ChallengeToken, "001234"));
+        Assert.Null(verified.Action.CompletedSteps);
+        Assert.Null(verified.Action.NextStep);
+        Assert.Equal(FlowState.CHALLENGE_SUCCEEDED, verified.Action.State);
+
+        handler.Response = """
+            {"action":{"state":"CHALLENGE_SUCCEEDED","completedSteps":[{"stepType":"ENROLLMENT_REQUIRED","completedAt":"2026-09-14T05:49:35.778Z","verificationMethod":"EMAIL_OTP"}]}}
+            """;
+        var finished = await client.VerifyFlow(new("signup-v2", verified.ChallengeToken));
+        var step = Assert.Single(finished.Action.CompletedSteps!);
+        Assert.Equal(ActionStepType.ENROLLMENT_REQUIRED, step.StepType);
+        Assert.Equal(VerificationMethod.EMAIL_OTP, step.VerificationMethod);
+        Assert.Null(step.UserAuthenticatorId);
+        Assert.Null(finished.Action.NextStep);
+        Assert.Equal(FlowState.CHALLENGE_SUCCEEDED, finished.Action.State);
+    }
+
+    private static Task<OtpVerifyResponse> Verify(IAuthsignalClient c, string channel)
+        => channel switch { "email-otp" => c.Email.Verify(new("second", "001234")), "sms" => c.Sms.Verify(new("second", "001234")), _ => c.Whatsapp.Verify(new("second", "001234")) };
 
     [Theory]
     [InlineData("email-otp")]
@@ -130,6 +168,7 @@ public class FlowsTests
         handler.Response = "{\"action\":" + Action + ",\"user\":" + User + ",\"challengeToken\":\"rotated\"}";
         var response = await Verify(client, channel);
         Assert.Equal("rotated", response.ChallengeToken); Assert.Equal("user", response.User.UserId);
+        Assert.Equal(FlowState.CHALLENGE_SUCCEEDED, response.Action.State);
         AssertRequest(handler, "client/flows/verify/" + channel, "{\"verificationCode\":\"001234\"}", "second");
         handler.Response = "{}";
         await client.StartFlow(new("sign-in"));
@@ -140,7 +179,7 @@ public class FlowsTests
     [InlineData("email-otp")]
     [InlineData("sms")]
     [InlineData("whatsapp")]
-    public async Task OtpErrorsAndCancellation(string channel)
+    public async Task OtpErrors(string channel)
     {
         var handler = new Handler { Response = "{\"error\":\"invalid_code\",\"errorDescription\":\"wrong code\"}", Status = HttpStatusCode.BadRequest };
         using var services = Services(handler);
@@ -150,13 +189,12 @@ public class FlowsTests
         handler.Status = HttpStatusCode.Unauthorized; handler.Response = "{\"error\":\"expired_token\"}";
         var other = await Assert.ThrowsAsync<AuthsignalException>(() => Verify(client, channel));
         Assert.Equal("expired_token", other.Error);
-        handler.Cancel = true;
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(20));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Verify(client, channel, cts.Token));
     }
 
-    [Fact]
-    public async Task PublicConstructorUsesTokenAuthOnTheWire()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PublicConstructorUsesCorrectAuthOnTheWire(bool otp)
     {
         var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -177,12 +215,22 @@ public class FlowsTests
             });
             var client = new AuthsignalClient("secret", $"http://127.0.0.1:{port}/v1", retries: 0);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await client.Sms.Challenge(new("token"), cts.Token);
+            if (otp) await client.Sms.Challenge(new("token"), cts.Token);
+            else await client.StartFlow(new("sign-in"), cts.Token);
             var headers = await received.WaitAsync(cts.Token);
-            Assert.Equal("POST /v1/client/flows/challenge/sms HTTP/1.1", headers[0]);
-            Assert.Contains("X-Authsignal-Challenge-Token: token", headers);
             Assert.Contains("User-Agent: authsignal-dotnet", headers);
-            Assert.DoesNotContain(headers, h => h.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase));
+            if (otp)
+            {
+                Assert.Equal("POST /v1/client/flows/challenge/sms HTTP/1.1", headers[0]);
+                Assert.Contains("X-Authsignal-Challenge-Token: token", headers);
+                Assert.DoesNotContain(headers, h => h.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                Assert.Equal("POST /v1/flows HTTP/1.1", headers[0]);
+                Assert.Contains("Authorization: Basic c2VjcmV0Og==", headers);
+                Assert.DoesNotContain(headers, h => h.StartsWith("X-Authsignal-Challenge-Token:", StringComparison.OrdinalIgnoreCase));
+            }
         }
         finally { listener.Stop(); }
     }
@@ -203,15 +251,12 @@ public class FlowsTests
     }
 
     [Fact]
-    public async Task ServerErrorsAndCancellation()
+    public async Task ServerErrors()
     {
         var handler = new Handler { Response = "{\"error\":\"invalid_action\"}", Status = HttpStatusCode.BadRequest };
         using var services = Services(handler);
         var client = services.GetRequiredService<IAuthsignalClient>();
         Assert.Equal("invalid_action", (await Assert.ThrowsAsync<AuthsignalException>(() => client.StartFlow(new("bad")))).Error);
         Assert.Equal("invalid_action", (await Assert.ThrowsAsync<AuthsignalException>(() => client.VerifyFlow(new("bad", "token")))).Error);
-        handler.Cancel = true;
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(20));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.StartFlow(new("sign-in"), cts.Token));
     }
 }

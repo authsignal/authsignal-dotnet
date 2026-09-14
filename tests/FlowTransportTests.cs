@@ -146,7 +146,7 @@ public class FlowTransportTests
         var pending = Invoke(services.GetRequiredService<IAuthsignalClient>(), operation, cancellation.Token);
         await handler.AllRequestsArrived.Task.WaitAsync(timeout.Token);
         cancellation.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending.WaitAsync(timeout.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
         Assert.Single(handler.Requests);
     }
 
