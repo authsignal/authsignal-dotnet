@@ -441,6 +441,28 @@ public class AuthsignalClient : IAuthsignalClient
         await response.Content.ReadAsStringAsync().ConfigureAwait(false);
     }
 
+    public async Task<StartFlowResponse> StartFlow(StartFlowRequest request, CancellationToken cancellationToken = default)
+    {
+        using var content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json");
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "flows") { Content = content };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<StartFlowResponse>(responseContent, _serializeOptions)!;
+    }
+
+    public async Task<VerifyFlowResponse> VerifyFlow(VerifyFlowRequest request, CancellationToken cancellationToken = default)
+    {
+        using var content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json");
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "flows/verify") { Content = content };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<VerifyFlowResponse>(responseContent, _serializeOptions)!;
+    }
+
     private async Task<HttpResponseMessage> SendHttpRequest(AuthsignalHttpRequest request, CancellationToken cancellationToken)
     {
         Exception? requestException;
