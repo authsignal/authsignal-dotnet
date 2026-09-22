@@ -13,15 +13,11 @@ public class AuthsignalClient : IAuthsignalClient
     internal string[] SAFE_HTTP_METHODS = ["GET", "HEAD", "OPTIONS"];
 
     private readonly HttpClient _httpClient;
-    private readonly string _authorization;
     private readonly JsonSerializerOptions _serializeOptions;
     private readonly int _retries;
     private readonly Webhook _webhook;
 
     public Webhook Webhook { get => _webhook; }
-    public AuthsignalFlowsEmail Email { get; }
-    public AuthsignalFlowsSms Sms { get; }
-    public AuthsignalFlowsWhatsapp Whatsapp { get; }
 
     private static readonly string _version = typeof(AuthsignalClient).Assembly
         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -46,8 +42,7 @@ public class AuthsignalClient : IAuthsignalClient
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        _authorization = $"Basic {Base64Encode($"{apiSecretKey}:")}";
-        _httpClient.DefaultRequestHeaders.Remove("Authorization");
+        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", _version);
 
@@ -56,9 +51,6 @@ public class AuthsignalClient : IAuthsignalClient
         _retries = retries ?? DEFAULT_RETRIES;
 
         _webhook = new Webhook(apiSecretKey);
-        Email = new AuthsignalFlowsEmail(this);
-        Sms = new AuthsignalFlowsSms(this);
-        Whatsapp = new AuthsignalFlowsWhatsapp(this);
     }
 
     public AuthsignalClient(string apiSecretKey, string? apiUrl = null, int? retries = null)
@@ -81,17 +73,13 @@ public class AuthsignalClient : IAuthsignalClient
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        _authorization = $"Basic {Base64Encode($"{apiSecretKey}:")}";
+        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Base64Encode($"{apiSecretKey}:")}");
 
         _httpClient.DefaultRequestHeaders.Add("X-Authsignal-Version", _version);
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "authsignal-dotnet");
 
         _retries = retries ?? DEFAULT_RETRIES;
 
         _webhook = new Webhook(apiSecretKey);
-        Email = new AuthsignalFlowsEmail(this);
-        Sms = new AuthsignalFlowsSms(this);
-        Whatsapp = new AuthsignalFlowsWhatsapp(this);
     }
 
     public async Task<GetUserResponse> GetUser(GetUserRequest request, CancellationToken cancellationToken = default)
@@ -453,30 +441,26 @@ public class AuthsignalClient : IAuthsignalClient
         await response.Content.ReadAsStringAsync().ConfigureAwait(false);
     }
 
-    public Task<StartFlowResponse> StartFlow(StartFlowRequest request, CancellationToken cancellationToken = default)
-        => PostFlow<StartFlowResponse>("flows", request, null, cancellationToken);
-
-    public Task<VerifyFlowResponse> VerifyFlow(VerifyFlowRequest request, CancellationToken cancellationToken = default)
-        => PostFlow<VerifyFlowResponse>("flows/verify", request, null, cancellationToken);
-
-    internal async Task<T> PostFlow<T>(string path, object body, string? challengeToken, CancellationToken cancellationToken)
+    public async Task<StartFlowResponse> StartFlow(StartFlowRequest request, CancellationToken cancellationToken = default)
     {
-        using var requestContent = new StringContent(JsonSerializer.Serialize(body, _serializeOptions), Encoding.UTF8, "application/json");
-        var request = new AuthsignalHttpRequest(HttpMethod.Post, path)
-        {
-            Content = requestContent,
-            ChallengeToken = challengeToken
-        };
-        try
-        {
-            using var response = await SendHttpRequest(request, cancellationToken).ConfigureAwait(false);
-            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<T>(content, _serializeOptions)!;
-        }
-        catch (AuthsignalException ex) when (challengeToken != null && ex.Error == "invalid_code")
-        {
-            throw new InvalidCodeException(ex.StatusCode, new AuthsignalErrorResponse(ex.Error, ex.ErrorDescription));
-        }
+        using var content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json");
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "flows") { Content = content };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<StartFlowResponse>(responseContent, _serializeOptions)!;
+    }
+
+    public async Task<VerifyFlowResponse> VerifyFlow(VerifyFlowRequest request, CancellationToken cancellationToken = default)
+    {
+        using var content = new StringContent(JsonSerializer.Serialize(request, _serializeOptions), Encoding.UTF8, "application/json");
+        var httpRequest = new AuthsignalHttpRequest(HttpMethod.Post, "flows/verify") { Content = content };
+
+        using var response = await SendHttpRequest(httpRequest, cancellationToken).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        return JsonSerializer.Deserialize<VerifyFlowResponse>(responseContent, _serializeOptions)!;
     }
 
     private async Task<HttpResponseMessage> SendHttpRequest(AuthsignalHttpRequest request, CancellationToken cancellationToken)
@@ -571,18 +555,9 @@ public class AuthsignalClient : IAuthsignalClient
         return delay;
     }
 
-    private HttpRequestMessage BuildHttpRequestMessage(AuthsignalHttpRequest request)
+    private static HttpRequestMessage BuildHttpRequestMessage(AuthsignalHttpRequest request)
     {
         var httpRequestMessage = new HttpRequestMessage(request.HttpMethod, request.Path);
-
-        if (request.ChallengeToken == null)
-        {
-            httpRequestMessage.Headers.Add("Authorization", _authorization);
-        }
-        else
-        {
-            httpRequestMessage.Headers.Add("X-Authsignal-Challenge-Token", request.ChallengeToken);
-        }
 
         if (request.Content != null)
         {

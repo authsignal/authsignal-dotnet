@@ -3,9 +3,6 @@
 public interface IAuthsignalClient
 {
     public Webhook Webhook { get; }
-    AuthsignalFlowsEmail Email { get; }
-    AuthsignalFlowsSms Sms { get; }
-    AuthsignalFlowsWhatsapp Whatsapp { get; }
 
     Task<StartFlowResponse> StartFlow(StartFlowRequest request, CancellationToken cancellationToken = default);
     Task<VerifyFlowResponse> VerifyFlow(VerifyFlowRequest request, CancellationToken cancellationToken = default);

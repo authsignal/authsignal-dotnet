@@ -8,10 +8,7 @@ public record class AuthsignalHttpRequest(
     string Path,
     HttpContent? Content = null,
     Dictionary<string, string>? QueryParams = null
-)
-{
-    internal string? ChallengeToken { get; init; }
-}
+);
 
 public record class GetUserRequest(
     string UserId

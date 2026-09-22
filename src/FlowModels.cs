@@ -83,36 +83,6 @@ public record class AuthenticationSession(
     string RefreshToken
 );
 
-public record class EmailChallengeRequest(
-    string ChallengeToken,
-    string? Email = null
-);
-
-public record class SmsChallengeRequest(
-    string ChallengeToken,
-    string? PhoneNumber = null
-);
-
-public record class WhatsappChallengeRequest(
-    string ChallengeToken,
-    string? PhoneNumber = null
-);
-
-public record class OtpChallengeResponse(
-    int? RetryAfterSeconds = null
-);
-
-public record class OtpVerifyRequest(
-    string ChallengeToken,
-    string VerificationCode
-);
-
-public record class OtpVerifyResponse(
-    FlowAction Action,
-    string ChallengeToken,
-    FlowUser User
-);
-
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum FlowState
 {
