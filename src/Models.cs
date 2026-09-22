@@ -385,8 +385,7 @@ public enum VerificationMethod
     IDVERSE,
     RECOVERY_CODE,
     DEVICE,
-    WHATSAPP,
-    PALM_BIOMETRICS_RR
+    WHATSAPP
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
