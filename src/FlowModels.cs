@@ -63,10 +63,7 @@ public record class ChallengeAttributes(
 public record class FlowUser(
     string UserId,
     FlowUserAuthenticator[] Authenticators,
-    string? Email = null,
-    string? PhoneNumber = null,
-    string? Username = null,
-    string? DisplayName = null
+    string? Username = null
 );
 
 public record class FlowUserAuthenticator(
