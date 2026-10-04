@@ -57,6 +57,8 @@ public record class UpdateUserRequest(
 public record class UserAttributes(
     string? Email = null,
     string? PhoneNumber = null,
+    bool? EmailVerified = null,
+    bool? PhoneNumberVerified = null,
     string? Username = null,
     string? DisplayName = null,
     Dictionary<string, object>? Custom = null

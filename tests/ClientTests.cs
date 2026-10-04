@@ -34,7 +34,9 @@ public class ClientTests : TestBase
             UserId: userId,
             Attributes: new(
                 Email: email,
+                EmailVerified: true,
                 PhoneNumber: phoneNumber,
+                PhoneNumberVerified: true,
                 Username: username,
                 DisplayName: displayName,
                 Custom: custom));
@@ -42,7 +44,9 @@ public class ClientTests : TestBase
         var updatedAttributes = await AuthsignalClient.UpdateUser(updateUserRequest);
 
         Assert.Equal(email, updatedAttributes.Email);
+        Assert.True(updatedAttributes.EmailVerified);
         Assert.Equal(phoneNumber, updatedAttributes.PhoneNumber);
+        Assert.True(updatedAttributes.PhoneNumberVerified);
         Assert.Equal(username, updatedAttributes.Username);
         Assert.Equal(displayName, updatedAttributes.DisplayName);
         Assert.Equal("bar", custom["foo"]);
