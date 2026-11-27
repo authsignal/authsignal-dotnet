@@ -232,13 +232,21 @@ public record class ChallengeRequest(
     string? PhoneNumber = null,
     string? SmsChannel = null,
     string? Locale = null,
-    string? IdempotencyKey = null
+    string? IdempotencyKey = null,
+    string? ChallengeId = null,
+    string? UserId = null,
+    string? DeviceId = null,
+    string? IpAddress = null,
+    string? UserAgent = null,
+    Dictionary<string, object>? Custom = null,
+    string? Scope = null
 );
 
 public record class ChallengeResponse(
     string ChallengeId,
     string IdempotencyKey,
-    int ExpiresAt
+    int ExpiresAt,
+    int? RetryAfterSeconds = null
 );
 
 public record class VerifyRequest(
@@ -250,7 +258,8 @@ public record class VerifyResponse(
     bool IsVerified,
     string? Email = null,
     string? PhoneNumber = null,
-    VerificationMethod? VerificationMethod = null
+    VerificationMethod? VerificationMethod = null,
+    string? FailureReason = null
 );
 
 public record class ClaimChallengeRequest(
